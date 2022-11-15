@@ -1,0 +1,33 @@
+#cardlink_checkout--redirect-page,
+#cardlink_checkout--response-page {}
+
+#cardlink_checkout--redirect-page h1,
+#cardlink_checkout--response-page h1 {
+    font-size: 16px;
+    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+}
+
+img#cardlink_checkout--payment-method-logo {
+    float: none !important;
+    max-height: 40px;
+    margin-top: 4px;
+    margin-bottom: 15px;
+}
+
+#cardlink-checkout-stored-token-options {
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+
+.row.stored-token-option {
+    margin-bottom: 10px;
+}
+
+.row.stored-token-option img {
+    max-width: 100%;
+    max-height: 48px;
+}
+
+.row.stored-token-option label {
+    text-align: left;
+}
