@@ -31,6 +31,7 @@ $_MODULE['<{cardlink_checkout}prestashop>cardlink_checkout_27d20a2bd035c7d491f6b
 $_MODULE['<{cardlink_checkout}prestashop>cardlink_checkout_7d8455295bb2cd02df53df1683104665'] = 'Καθορισμός Βάσει Ποσού Αγοράς';
 $_MODULE['<{cardlink_checkout}prestashop>cardlink_checkout_4c5d9a7e13ad48067b6020615778e906'] = 'Σταθερό Μέγιστο Πλήθος Δόσεων';
 $_MODULE['<{cardlink_checkout}prestashop>cardlink_checkout_eb3b681ef0e5b33443e53a86b7746059'] = 'Το μέγιστο πλήθος δόσεων που μπορεί να επιλεχθεί για όλες τις αγορές.';
+$_MODULE['<{cardlink_checkout}prestashop>cardlink_checkout_869f4480688bfdf46777fd83a2ccdc73'] = 'Αποδεκτές τιμές: 0 έως 60 δόσεις.';
 $_MODULE['<{cardlink_checkout}prestashop>cardlink_checkout_23ad873af0a987b1e128b5b6c8dc54ad'] = 'Χρησιμοποιήστε αριθμητικές τιμές.';
 $_MODULE['<{cardlink_checkout}prestashop>cardlink_checkout_1abec67522e1275b75e3202dd8c5a04a'] = 'Ασφαλή Αποθήκευση των Στοιχείων της Κάρτας';
 $_MODULE['<{cardlink_checkout}prestashop>cardlink_checkout_3148a62852cd5d120d0a97303cf79cbb'] = 'Ενεργοποίηση της επιλογής από τον πελάτη για ασφαλής αποθήκευσης των στοιχείων της κάρτας του για μελλοντικές αγορές.';
@@ -62,6 +63,7 @@ $_MODULE['<{cardlink_checkout}prestashop>admincardlink_checkoutinstallmentsmanag
 $_MODULE['<{cardlink_checkout}prestashop>admincardlink_checkoutinstallmentsmanagercontroller_529a9a237798dd2f8acc9eebb03e21fc'] = 'Ελάχιστο Ποσό';
 $_MODULE['<{cardlink_checkout}prestashop>admincardlink_checkoutinstallmentsmanagercontroller_8a0f295a95f03a670f1996f0c4ab68d1'] = 'Μέγιστο Ποσό';
 $_MODULE['<{cardlink_checkout}prestashop>admincardlink_checkoutinstallmentsmanagercontroller_51f8be0f49fe1baaf96484d5f8d6bbe3'] = 'Μέγιστο Πλήθος Δόσεων';
+$_MODULE['<{cardlink_checkout}prestashop>admincardlink_checkoutinstallmentsmanagercontroller_869f4480688bfdf46777fd83a2ccdc73'] = 'Αποδεκτές τιμές: 0 έως 60 δόσεις.';
 $_MODULE['<{cardlink_checkout}prestashop>admincardlink_checkoutinstallmentsmanagercontroller_c9cc8cce247e49bae79f15173ce97354'] = 'Αποθήκευση';
 $_MODULE['<{cardlink_checkout}prestashop>validation_e2b7dec8fa4b498156dfee6e4c84b156'] = 'Η μέθοδος πληρωμής δεν είναι διαθέσιμη.';
 $_MODULE['<{cardlink_checkout}prestashop>payment_56ca67fde405db4d75fb5fc3350db81b'] = 'Λυπούμαστε. Δεν είναι δυνατό να ανανεώσουμε την παραγγελία σας.';

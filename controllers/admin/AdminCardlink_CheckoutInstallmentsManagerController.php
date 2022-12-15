@@ -74,6 +74,7 @@ class AdminCardlink_CheckoutInstallmentsManagerController extends ModuleAdminCon
                     [
                         'type' => 'text',
                         'label' => $this->l('Maximum Installments'),
+                        'desc' => $this->l('Valid values: 0 to 60.'),
                         'name' => 'max_installments',
                         'size' => 10,
                         'required' => true
@@ -104,10 +105,10 @@ class AdminCardlink_CheckoutInstallmentsManagerController extends ModuleAdminCon
 
         $item = new Cardlink_Checkout\Installments((int)$id);
 
-        if ($id != 0 && $item->id_installments != 0) {
+        if ($id != 0 && $item->id != 0) {
             $helper->fields_value['min_amount'] = $item->min_amount;
             $helper->fields_value['max_amount'] = $item->max_amount;
-            $helper->fields_value['max_installments'] = $item->max_installments;
+            $helper->fields_value['max_installments'] = max(0, min(60, $item->max_installments));
         } else {
             $helper->fields_value['min_amount'] = 0.0;
             $helper->fields_value['max_amount'] = 0.0;
@@ -134,7 +135,7 @@ class AdminCardlink_CheckoutInstallmentsManagerController extends ModuleAdminCon
 
             $item->min_amount = Tools::getValue('min_amount', $item->min_amount);
             $item->max_amount = Tools::getValue('max_amount', $item->max_amount);
-            $item->max_installments = Tools::getValue('max_installments', $item->max_installments);
+            $item->max_installments = max(0, min(60, Tools::getValue('max_installments', $item->max_installments)));
             $item->save();
 
             Tools::redirect($backUrl);

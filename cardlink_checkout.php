@@ -145,7 +145,7 @@ class Cardlink_Checkout extends PaymentModule
             $transactionEnvironment = Tools::getValue(Cardlink_Checkout\Constants::CONFIG_TRANSACTION_ENVIRONMENT, Cardlink_Checkout\Constants::TRANSACTION_ENVIRONMENT_SANDBOX);
             $paymentAction = Tools::getValue(Cardlink_Checkout\Constants::CONFIG_PAYMENT_ACTION, Cardlink_Checkout\Constants::PAYMENT_ACTION_SALE);
             $acceptInstallments = Tools::getValue(Cardlink_Checkout\Constants::CONFIG_ACCEPT_INSTALLMENTS, Cardlink_Checkout\Constants::ACCEPT_INSTALLMENTS_NO);
-            $fixedInstallments = Tools::getValue(Cardlink_Checkout\Constants::CONFIG_FIXED_MAX_INSTALLMENTS, '3');
+            $fixedInstallments = max(0, min(60, Tools::getValue(Cardlink_Checkout\Constants::CONFIG_FIXED_MAX_INSTALLMENTS, '3')));
             $allowTokenization = Tools::getValue(Cardlink_Checkout\Constants::CONFIG_ALLOW_TOKENIZATION, '0');
             $iframeCheckout = Tools::getValue(Cardlink_Checkout\Constants::CONFIG_USE_IFRAME, '0');
             $forceStoreLanguage = Tools::getValue(Cardlink_Checkout\Constants::CONFIG_FORCE_STORE_LANGUAGE, '0');
@@ -339,7 +339,7 @@ class Cardlink_Checkout extends PaymentModule
                         'type' => 'text',
                         'name' => Cardlink_Checkout\Constants::CONFIG_FIXED_MAX_INSTALLMENTS,
                         'label' => $this->l('Fixed Maximum Installments'),
-                        'desc' => $this->l('The maximum number of installments available for all orders.'),
+                        'desc' => $this->l('The maximum number of installments available for all orders.') . ' ' . $this->l('Valid values: 0 to 60.'),
                         'hint' => $this->l('Use numeric values.')
                     ],
                     [
