@@ -34,7 +34,7 @@ class Cardlink_Checkout extends PaymentModule
     {
         $this->name                   = Cardlink_Checkout\Constants::MODULE_NAME;
         $this->tab                    = 'payments_gateways';
-        $this->version                = '1.0.0';
+        $this->version                = '1.0.1';
         $this->author                 = 'Cardlink S.A.';
         $this->controllers            = array('payment', 'validation');
         $this->currencies             = true;
@@ -139,6 +139,8 @@ class Cardlink_Checkout extends PaymentModule
             // // retrieve the configuration values set by the user
             $title = self::getPostedMultilingualValue(Cardlink_Checkout\Constants::CONFIG_TITLE, '');
             $description = self::getPostedMultilingualValue(Cardlink_Checkout\Constants::CONFIG_DESCRIPTION, '');
+            $orderStatusCaptured = Tools::getValue(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_CAPTURED, Configuration::get('PS_OS_PAYMENT'));
+            $orderStatusAuthorized = Tools::getValue(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_AUTHORIZED, Configuration::get('PS_CHECKOUT_STATE_AUTHORIZED'));
             $businessPartner = Tools::getValue(Cardlink_Checkout\Constants::CONFIG_BUSINESS_PARTNER, Cardlink_Checkout\Constants::BUSINESS_PARTNER_CARDLINK);
             $merchantId = Tools::getValue(Cardlink_Checkout\Constants::CONFIG_MERCHANT_ID, '');
             $sharedSecret = Tools::getValue(Cardlink_Checkout\Constants::CONFIG_SHARED_SECRET, '');
@@ -158,6 +160,8 @@ class Cardlink_Checkout extends PaymentModule
 
             Configuration::updateValue(Cardlink_Checkout\Constants::CONFIG_TITLE, $title);
             Configuration::updateValue(Cardlink_Checkout\Constants::CONFIG_DESCRIPTION, $description);
+            Configuration::updateValue(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_CAPTURED, $orderStatusCaptured);
+            Configuration::updateValue(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_AUTHORIZED, $orderStatusAuthorized);
             Configuration::updateValue(Cardlink_Checkout\Constants::CONFIG_BUSINESS_PARTNER, $businessPartner);
             Configuration::updateValue(Cardlink_Checkout\Constants::CONFIG_MERCHANT_ID, $merchantId);
             Configuration::updateValue(Cardlink_Checkout\Constants::CONFIG_SHARED_SECRET, $sharedSecret);
@@ -185,13 +189,32 @@ class Cardlink_Checkout extends PaymentModule
      */
     public function displayForm()
     {
+        $retCron = '<div class="panel col-lg-12">';
+        $retCron .= '<div class="panel-heading">' . $this->l('Cron Configuration', false, $this->context->language->locale) . '</div>';
+        $retCron .= ' <div style="padding-bottom:20px;">' . $this->l('Execute hourly to automatically cancel abandoned orders.', false, $this->context->language->locale) . '</div>';
+        $retCron .= ' <div><strong>Cron URL:</strong> ' .  Context::getContext()->link->getModuleLink(Cardlink_Checkout\Constants::MODULE_NAME, 'cron', array()) . '</div>';
+        $retCron .= ' <div><strong>Cron script:</strong> ' . __DIR__ . DIRECTORY_SEPARATOR . 'cron.php' . '</div>';
+        $retCron .= '</div>';
+
         $retA = $this->renderAdditionalOptionsList();
         $retC = $this->renderConfigurationForm();
-        return $retC . $retA;
+
+        return  $retC . $retA . $retCron;
     }
 
     protected function renderConfigurationForm()
     {
+        $states = new OrderState(); //the id is possibly not required, did not try without
+        $states2 = $states->getOrderStates((int) Configuration::get('PS_LANG_DEFAULT')); // the id is the language id.
+        $order_states = [];
+
+        foreach ($states2 as $state) {
+            $order_states[] = [
+                'id_option' => $state['id_order_state'],
+                'name' => $state['name']
+            ];
+        }
+
         // Init Fields form array
         $form = [
             'form' => [
@@ -220,6 +243,34 @@ class Cardlink_Checkout extends PaymentModule
                         'cols' => 50,
                         'rows' => 10,
                         'required' => false,
+                    ],
+                    [
+                        'type' => 'select',
+                        'lang' => false,
+                        'name' => Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_CAPTURED,
+                        'label' => $this->l('Captured Payment Order Status'),
+                        'desc' => $this->l('The status of an order after a payment has been successfully captured.'),
+                        'hint' => null,
+                        'required' => true,
+                        'options' => [
+                            'query' => $order_states,
+                            'id' => 'id_option',
+                            'name' => 'name'
+                        ]
+                    ],
+                    [
+                        'type' => 'select',
+                        'lang' => false,
+                        'name' => Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_AUTHORIZED,
+                        'label' => $this->l('Authorized Payment Order Status'),
+                        'desc' => $this->l('The status of an order after a payment has been successfully authorized.'),
+                        'hint' => null,
+                        'required' => true,
+                        'options' => [
+                            'query' => $order_states,
+                            'id' => 'id_option',
+                            'name' => 'name'
+                        ]
                     ],
                     [
                         'type' => 'select',
@@ -477,7 +528,8 @@ class Cardlink_Checkout extends PaymentModule
             $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_TITLE][$language['id_lang']] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_TITLE, $language['id_lang'], $idShopGroup, $idShop, $this->l('Pay through Cardlink', false, $language['locale']));
             $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_DESCRIPTION][$language['id_lang']] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_DESCRIPTION, $language['id_lang'], $idShopGroup, $idShop, $this->l('Pay Via Cardlink: Accepts Visa, Mastercard, Maestro, American Express, Diners, Discover.', false, $language['locale']));
         }
-
+        $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_CAPTURED] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_CAPTURED, null, null, null, Configuration::get('PS_OS_PAYMENT'));
+        $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_AUTHORIZED] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_AUTHORIZED, null, null, null, Configuration::get('PS_CHECKOUT_STATE_AUTHORIZED'));
         $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_BUSINESS_PARTNER] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_DESCRIPTION, null, null, null, Cardlink_Checkout\Constants::BUSINESS_PARTNER_CARDLINK);
         $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_MERCHANT_ID] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_MERCHANT_ID, null, null, null, '');
         $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_SHARED_SECRET] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_SHARED_SECRET, null, null, null, '');

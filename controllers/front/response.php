@@ -70,11 +70,6 @@ class Cardlink_CheckoutResponseModuleFrontController extends ModuleFrontControll
         //     Tools::redirect(self::ERROR_REDIRECT_URI);
         // }
 
-        // if (Mage::helper('cardlink_checkout')->logDebugInfoEnabled()) {
-        //     Mage::log("Received valid payment gateway response", null, 'cardlink.log', true);
-        //     Mage::log(json_encode($responseData, JSON_PRETTY_PRINT), null, 'cardlink.log', true);
-        // }
-
         // If the response identifies the transaction as either AUTHORIZED or CAPTURED.
         if (
             $responseData[Cardlink_Checkout\ApiFields::Status] === Cardlink_Checkout\Constants::TRANSACTION_STATUS_AUTHORIZED
@@ -103,7 +98,7 @@ class Cardlink_CheckoutResponseModuleFrontController extends ModuleFrontControll
             || $responseData[Cardlink_Checkout\ApiFields::Status] === Cardlink_Checkout\Constants::TRANSACTION_STATUS_REFUSED
             || $responseData[Cardlink_Checkout\ApiFields::Status] === Cardlink_Checkout\Constants::TRANSACTION_STATUS_ERROR
         ) {
-            $this->errors = Cardlink_Checkout\PaymentHelper::markCanceledPayment($this->module, $order_details, $responseData);
+            $this->errors = Cardlink_Checkout\PaymentHelper::markCanceledPayment($this->module, $order_details, true);
         }
 
         $id_shop = $order_details->id_shop;

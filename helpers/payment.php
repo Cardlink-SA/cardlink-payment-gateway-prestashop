@@ -346,9 +346,17 @@ class PaymentHelper
             $history->id_order = (int)$order_details->id;
 
             if ($responseData[ApiFields::Status] === Constants::TRANSACTION_STATUS_AUTHORIZED) {
-                $history->changeIdOrderState(Configuration::get('PS_CHECKOUT_STATE_AUTHORIZED'), (int)($order_details->id), true);
+                $history->changeIdOrderState(
+                    (int)Configuration::get(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_AUTHORIZED, null, null, null, Configuration::get('PS_CHECKOUT_STATE_AUTHORIZED')),
+                    (int)($order_details->id),
+                    true
+                );
             } else if ($responseData[ApiFields::Status] === Constants::TRANSACTION_STATUS_CAPTURED) {
-                $history->changeIdOrderState(Configuration::get('PS_OS_PAYMENT'), (int)($order_details->id), true);
+                $history->changeIdOrderState(
+                    (int)Configuration::get(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_CAPTURED, null, null, null, Configuration::get('PS_OS_PAYMENT')),
+                    (int)($order_details->id),
+                    true
+                );
             }
 
             $history->save();
@@ -360,10 +368,10 @@ class PaymentHelper
     /**
      * Mark an order as canceled, store additional payment information and restore the user's cart.
      * 
-     * @param Order The order object.
-     * @param array The data from the payment gateway's response.
+     * @param Order $order_details The order object.
+     * @param bool $restoreCart Define whether to restore the user's cart from the order.
      */
-    public static function markCanceledPayment(Module $module, Order $order_details, $responseData)
+    public static function markCanceledPayment(Module $module, Order $order_details, $restoreCart = false)
     {
         $errors = [];
 
@@ -376,7 +384,9 @@ class PaymentHelper
             $history->changeIdOrderState($id_canceled_state, (int)($order_details->id));
             $history->save();
 
-            $errors = self::restoreCart($module, $order_details);
+            if ($restoreCart) {
+                $errors = self::restoreCart($module, $order_details);
+            }
         }
 
         return $errors;
