@@ -34,7 +34,7 @@ class Cardlink_Checkout extends PaymentModule
     {
         $this->name                   = Cardlink_Checkout\Constants::MODULE_NAME;
         $this->tab                    = 'payments_gateways';
-        $this->version                = '1.0.1';
+        $this->version                = '1.0.2';
         $this->author                 = 'Cardlink S.A.';
         $this->controllers            = array('payment', 'validation');
         $this->currencies             = true;
@@ -62,6 +62,7 @@ class Cardlink_Checkout extends PaymentModule
             && $this->registerHook('backOfficeHeader')
             && $this->registerHook('displayBackOfficeHeader')
             && $this->registerHook('displayHeader')
+            && $this->registerHook('actionEmailSendBefore')
 
             && Db::getInstance()->execute('
             CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . Cardlink_Checkout\Constants::TABLE_NAME_INSTALLMENTS . '` (
@@ -111,6 +112,27 @@ class Cardlink_Checkout extends PaymentModule
     public function hookBackOfficeHeader($params)
     {
         $this->context->controller->addJS($this->_path . 'views/js/admin-custom.js', true);
+    }
+
+    /**
+     * Do not send order confirmation email to customer if status is set to "waiting payment".
+     */
+    public function hookActionEmailSendBefore($params)
+    {
+        if ($params['template'] === 'order_conf') {
+            $order_id = (int)$params['templateVars']['{id_order}'];
+
+            $order_details = new Order($order_id);
+
+            if (
+                Validate::isLoadedObject($order_details)
+                && $order_details->module == Cardlink_Checkout\Constants::MODULE_NAME
+                && $order_details->current_state == Configuration::get('PS_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT')
+            ) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private function getPostedMultilingualValue($baseName)
@@ -721,5 +743,39 @@ class Cardlink_Checkout extends PaymentModule
         }
 
         return $this->fetch('module:cardlink_checkout/views/templates/hook/payment_return.tpl');
+    }
+
+    /**
+     * Fetch the content of $template_name inside the folder
+     * current_theme/mails/current_iso_lang/ if found, otherwise in
+     * mails/current_iso_lang.
+     *
+     * @param string $template_name template name with extension
+     * @param int $mail_type Mail::TYPE_HTML or Mail::TYPE_TEXT
+     * @param array $var sent to smarty as 'list'
+     *
+     * @return string
+     */
+    public function getEmailTemplateContent($template_name, $mail_type, $var)
+    {
+        return parent::getEmailTemplateContent($template_name, $mail_type, $var);
+    }
+
+    public function createOrderCartRules(
+        Order $order,
+        Cart $cart,
+        $order_list,
+        $total_reduction_value_ti,
+        $total_reduction_value_tex,
+        $id_order_state
+    ) {
+        return parent::createOrderCartRules(
+            $order,
+            $cart,
+            $order_list,
+            $total_reduction_value_ti,
+            $total_reduction_value_tex,
+            $id_order_state
+        );
     }
 }

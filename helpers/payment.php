@@ -359,6 +359,7 @@ class PaymentHelper
                 );
             }
 
+            $history->addWithEmail(true);
             $history->save();
         }
 

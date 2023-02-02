@@ -77,6 +77,7 @@ class Cardlink_CheckoutResponseModuleFrontController extends ModuleFrontControll
         ) {
             // Set order as paid.
             $this->errors = Cardlink_Checkout\PaymentHelper::markSuccessfulPayment($this->module, $order_details, $responseData);
+            $this->sendOrderConfirmationEmail($order_details);
 
             try {
                 if (array_key_exists(Cardlink_Checkout\ApiFields::ExtToken, $responseData)) {
@@ -158,5 +159,235 @@ class Cardlink_CheckoutResponseModuleFrontController extends ModuleFrontControll
             }
             return;
         }
+    }
+
+    public function sendOrderConfirmationEmail(Order $order)
+    {
+        $customer = new Customer($order->id_customer);
+        $order_status = new OrderState((int)$order->current_state, (int)$order->id_lang);
+
+        // Join PDF invoice
+        if ((int)Configuration::get('PS_INVOICE') && $order_status->invoice && $order->invoice_number) {
+            $pdf = new PDF($order->getInvoicesCollection(), PDF::TEMPLATE_INVOICE, $this->context->smarty);
+            $file_attachement['content'] = $pdf->render(false);
+            $file_attachement['name'] = Configuration::get('PS_INVOICE_PREFIX', (int)$order->id_lang, null, $order->id_shop) . sprintf('%06d', $order->invoice_number) . '.pdf';
+            $file_attachement['mime'] = 'application/pdf';
+        } else {
+            $file_attachement = null;
+        }
+
+        $data = $this->fillOrderConfirmationData($order->id);
+
+        Mail::Send(
+            (int)$order->id_lang,
+            'order_conf',
+            Mail::l('Order confirmation', (int)$order->id_lang),
+            $data,
+            $customer->email,
+            $customer->firstname . ' ' . $customer->lastname,
+            null,
+            null,
+            $file_attachement,
+            null,
+            _PS_MAIL_DIR_,
+            false,
+            (int)$order->id_shop
+        );
+    }
+
+    public static function _getFormatedAddress(Address $the_address, $line_sep, $fields_style = array())
+    {
+        return AddressFormat::generateAddress(
+            $the_address,
+            array('avoid' => array()),
+            $line_sep,
+            ' ',
+            $fields_style
+        );
+    }
+
+    public function fillOrderConfirmationData($id_order)
+    {
+        $order = new Order($id_order);
+        $order_details = OrderDetail::getList($id_order);
+        $customer = new Customer($order->id_customer);
+        $invoice = new Address($order->id_address_invoice);
+        $delivery = new Address($order->id_address_delivery);
+        $delivery_state = $delivery->id_state ? new State($delivery->id_state) : false;
+        $invoice_state = $invoice->id_state ? new State($invoice->id_state) : false;
+        $carrier = new Carrier($order->id_carrier);
+        $currency = new Currency($order->id_currency);
+
+        $invoice = new Address((int) $order->id_address_invoice);
+        $delivery = new Address((int) $order->id_address_delivery);
+        $delivery_state = $delivery->id_state ? new State((int) $delivery->id_state) : false;
+        $invoice_state = $invoice->id_state ? new State((int) $invoice->id_state) : false;
+        $carrier = $order->id_carrier ? new Carrier($order->id_carrier) : false;
+        $orderLanguage = new Language((int) $order->id_lang);
+
+        $id_order_state = (int) $order->current_state;
+        $order_status = new OrderState($id_order_state, (int) $this->context->language->id);
+
+        // Construct order detail table for the email
+        $virtual_product = true;
+
+        $product_var_tpl_list = [];
+        foreach ($order->getCartProducts() as $product) {
+            $price = Product::getPriceStatic((int) $product['id_product'], false, ($product['id_product_attribute'] ? (int) $product['id_product_attribute'] : null), 6, null, false, true, $product['cart_quantity'], false, (int) $order->id_customer, (int) $order->id_cart, (int) $order->{Configuration::get('PS_TAX_ADDRESS_TYPE')}, $specific_price, true, true, null, true, $product['id_customization']);
+            $price_wt = Product::getPriceStatic((int) $product['id_product'], true, ($product['id_product_attribute'] ? (int) $product['id_product_attribute'] : null), 2, null, false, true, $product['cart_quantity'], false, (int) $order->id_customer, (int) $order->id_cart, (int) $order->{Configuration::get('PS_TAX_ADDRESS_TYPE')}, $specific_price, true, true, null, true, $product['id_customization']);
+
+            $product_price = Product::getTaxCalculationMethod() == PS_TAX_EXC ? Tools::ps_round($price, Context::getContext()->getComputingPrecision()) : $price_wt;
+
+            $product_var_tpl = [
+                'id_product' => $product['id_product'],
+                'id_product_attribute' => $product['id_product_attribute'],
+                'reference' => $product['reference'],
+                'name' => $product['product_name'] . (isset($product['attributes']) ? ' - ' . $product['attributes'] : ''),
+                'price' => Tools::getContextLocale($this->context)->formatPrice($product_price * $product['product_quantity'], $this->context->currency->iso_code),
+                'quantity' => $product['product_quantity'],
+                'customization' => [],
+            ];
+
+            if (isset($product['price']) && $product['price']) {
+                $product_var_tpl['unit_price'] = Tools::getContextLocale($this->context)->formatPrice($product_price, $this->context->currency->iso_code);
+                $product_var_tpl['unit_price_full'] = Tools::getContextLocale($this->context)->formatPrice($product_price, $this->context->currency->iso_code)
+                    . ' ' . $product['unity'];
+            } else {
+                $product_var_tpl['unit_price'] = $product_var_tpl['unit_price_full'] = '';
+            }
+
+            $customized_datas = Product::getAllCustomizedDatas((int) $order->id_cart, null, true, null, (int) $product['id_customization']);
+            if (isset($customized_datas[$product['id_product']][$product['id_product_attribute']])) {
+                $product_var_tpl['customization'] = [];
+                foreach ($customized_datas[$product['id_product']][$product['id_product_attribute']][$order->id_address_delivery] as $customization) {
+                    $customization_text = '';
+                    if (isset($customization['datas'][Product::CUSTOMIZE_TEXTFIELD])) {
+                        foreach ($customization['datas'][Product::CUSTOMIZE_TEXTFIELD] as $text) {
+                            $customization_text .= '<strong>' . $text['name'] . '</strong>: ' . $text['value'] . '<br />';
+                        }
+                    }
+
+                    if (isset($customization['datas'][Product::CUSTOMIZE_FILE])) {
+                        $customization_text .= $this->trans('%d image(s)', [count($customization['datas'][Product::CUSTOMIZE_FILE])], 'Admin.Payment.Notification') . '<br />';
+                    }
+
+                    $customization_quantity = (int) $customization['quantity'];
+
+                    $product_var_tpl['customization'][] = [
+                        'customization_text' => $customization_text,
+                        'customization_quantity' => $customization_quantity,
+                        'quantity' => Tools::getContextLocale($this->context)->formatPrice($customization_quantity * $product_price, $this->context->currency->iso_code),
+                    ];
+                }
+            }
+
+            $product_var_tpl_list[] = $product_var_tpl;
+            // Check if is not a virtual product for the displaying of shipping
+            if (!$product['is_virtual']) {
+                $virtual_product &= false;
+            }
+        } // end foreach ($products)
+
+        $product_list_txt = '';
+        $product_list_html = '';
+        if (count($product_var_tpl_list) > 0) {
+            $product_list_txt = $this->module->getEmailTemplateContent('order_conf_product_list.txt', Mail::TYPE_TEXT, $product_var_tpl_list);
+            $product_list_html = $this->module->getEmailTemplateContent('order_conf_product_list.tpl', Mail::TYPE_HTML, $product_var_tpl_list);
+        }
+
+        $total_reduction_value_ti = 0;
+        $total_reduction_value_tex = 0;
+
+        $cart_rules_list = $this->module->createOrderCartRules(
+            $order,
+            $this->context->cart,
+            [$order],
+            $total_reduction_value_ti,
+            $total_reduction_value_tex,
+            $id_order_state
+        );
+
+        $cart_rules_list_txt = '';
+        $cart_rules_list_html = '';
+        if (count($cart_rules_list) > 0) {
+            $cart_rules_list_txt = $this->module->getEmailTemplateContent('order_conf_cart_rules.txt', Mail::TYPE_TEXT, $cart_rules_list);
+            $cart_rules_list_html = $this->module->getEmailTemplateContent('order_conf_cart_rules.tpl', Mail::TYPE_HTML, $cart_rules_list);
+        }
+
+
+        // Join PDF invoice
+        if ((int) Configuration::get('PS_INVOICE') && $order_status->invoice && $order->invoice_number) {
+            $currentLanguage = $this->context->language;
+            $this->context->language = $orderLanguage;
+            $this->context->getTranslator()->setLocale($orderLanguage->locale);
+            $order_invoice_list = $order->getInvoicesCollection();
+            Hook::exec('actionPDFInvoiceRender', ['order_invoice_list' => $order_invoice_list]);
+            $pdf = new PDF($order_invoice_list, PDF::TEMPLATE_INVOICE, $this->context->smarty);
+            $file_attachement['content'] = $pdf->render(false);
+            $file_attachement['name'] = Configuration::get('PS_INVOICE_PREFIX', (int) $order->id_lang, null, $order->id_shop) . sprintf('%06d', $order->invoice_number) . '.pdf';
+            $file_attachement['mime'] = 'application/pdf';
+            $this->context->language = $currentLanguage;
+            $this->context->getTranslator()->setLocale($currentLanguage->locale);
+        } else {
+            $file_attachement = null;
+        }
+
+        $data = [
+            '{firstname}' => $this->context->customer->firstname,
+            '{lastname}' => $this->context->customer->lastname,
+            '{email}' => $this->context->customer->email,
+            '{delivery_block_txt}' => $this->_getFormatedAddress($delivery, AddressFormat::FORMAT_NEW_LINE),
+            '{invoice_block_txt}' => $this->_getFormatedAddress($invoice, AddressFormat::FORMAT_NEW_LINE),
+            '{delivery_block_html}' => $this->_getFormatedAddress($delivery, '<br />', [
+                'firstname' => '<span style="font-weight:bold;">%s</span>',
+                'lastname' => '<span style="font-weight:bold;">%s</span>',
+            ]),
+            '{invoice_block_html}' => $this->_getFormatedAddress($invoice, '<br />', [
+                'firstname' => '<span style="font-weight:bold;">%s</span>',
+                'lastname' => '<span style="font-weight:bold;">%s</span>',
+            ]),
+            '{delivery_company}' => $delivery->company,
+            '{delivery_firstname}' => $delivery->firstname,
+            '{delivery_lastname}' => $delivery->lastname,
+            '{delivery_address1}' => $delivery->address1,
+            '{delivery_address2}' => $delivery->address2,
+            '{delivery_city}' => $delivery->city,
+            '{delivery_postal_code}' => $delivery->postcode,
+            '{delivery_country}' => $delivery->country,
+            '{delivery_state}' => $delivery->id_state ? $delivery_state->name : '',
+            '{delivery_phone}' => ($delivery->phone) ? $delivery->phone : $delivery->phone_mobile,
+            '{delivery_other}' => $delivery->other,
+            '{invoice_company}' => $invoice->company,
+            '{invoice_vat_number}' => $invoice->vat_number,
+            '{invoice_firstname}' => $invoice->firstname,
+            '{invoice_lastname}' => $invoice->lastname,
+            '{invoice_address2}' => $invoice->address2,
+            '{invoice_address1}' => $invoice->address1,
+            '{invoice_city}' => $invoice->city,
+            '{invoice_postal_code}' => $invoice->postcode,
+            '{invoice_country}' => $invoice->country,
+            '{invoice_state}' => $invoice->id_state ? $invoice_state->name : '',
+            '{invoice_phone}' => ($invoice->phone) ? $invoice->phone : $invoice->phone_mobile,
+            '{invoice_other}' => $invoice->other,
+            '{order_name}' => $order->getUniqReference(),
+            '{id_order}' => $order->id,
+            '{date}' => Tools::displayDate(date('Y-m-d H:i:s'), null, 1),
+            '{carrier}' => ($virtual_product || !isset($carrier->name)) ? $this->trans('No carrier', [], 'Admin.Payment.Notification') : $carrier->name,
+            '{payment}' => Tools::substr($order->payment, 0, 255) . ($order->hasBeenPaid() ? '' : '&nbsp;' . $this->trans('(waiting for validation)', [], 'Emails.Body')),
+            '{products}' => $product_list_html,
+            '{products_txt}' => $product_list_txt,
+            '{discounts}' => $cart_rules_list_html,
+            '{discounts_txt}' => $cart_rules_list_txt,
+            '{total_paid}' => Tools::getContextLocale($this->context)->formatPrice($order->total_paid, $this->context->currency->iso_code),
+            '{total_products}' => Tools::getContextLocale($this->context)->formatPrice(Product::getTaxCalculationMethod() == PS_TAX_EXC ? $order->total_products : $order->total_products_wt, $this->context->currency->iso_code),
+            '{total_discounts}' => Tools::getContextLocale($this->context)->formatPrice($order->total_discounts, $this->context->currency->iso_code),
+            '{total_shipping}' => Tools::getContextLocale($this->context)->formatPrice($order->total_shipping, $this->context->currency->iso_code),
+            '{total_shipping_tax_excl}' => Tools::getContextLocale($this->context)->formatPrice($order->total_shipping_tax_excl, $this->context->currency->iso_code),
+            '{total_shipping_tax_incl}' => Tools::getContextLocale($this->context)->formatPrice($order->total_shipping_tax_incl, $this->context->currency->iso_code),
+            '{total_wrapping}' => Tools::getContextLocale($this->context)->formatPrice($order->total_wrapping, $this->context->currency->iso_code),
+            '{total_tax_paid}' => Tools::getContextLocale($this->context)->formatPrice(($order->total_paid_tax_incl - $order->total_paid_tax_excl), $this->context->currency->iso_code),
+        ];
+
+        return $data;
     }
 }
