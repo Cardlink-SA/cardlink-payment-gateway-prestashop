@@ -3,6 +3,7 @@
 global $_MODULE;
 $_MODULE = array();
 $_MODULE['<{cardlink_checkout}prestashop>cardlink_checkout_bb8956c67b82c7444a80c6b2433dd8b4'] = 'Είσαστε σίγουροι ότι θέλετε να απεγκαταταστήσετε αυτή τη μέθοδο πληρωμής;';
+$_MODULE['<{cardlink_checkout}prestashop>cardlink_checkout_7f1a7f1c408776200f74961737b8bbac'] = 'Αναμονή πληρωμής με τραπεζική κάρτα';
 $_MODULE['<{cardlink_checkout}prestashop>cardlink_checkout_c888438d14855d7d96a2724ee9c306bd'] = 'Οι ρυθμίσεις ενημέρωθηκαν';
 $_MODULE['<{cardlink_checkout}prestashop>cardlink_checkout_1ccdaf9edec5c1741a98cda210d4fab1'] = 'Ρυθμίσεις Χρονοπρογραμματιζόμενων Εργασιών';
 $_MODULE['<{cardlink_checkout}prestashop>cardlink_checkout_e0c7e4db489a729cef757be9e147f6e8'] = 'Εκτελέστε ανά ώρα για την αυτόματη ακύρωση εγκαταλελλειμένων παραγγελιών.';

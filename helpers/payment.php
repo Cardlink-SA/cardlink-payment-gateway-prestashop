@@ -90,7 +90,7 @@ class PaymentHelper
         $acceptsInstallments = Configuration::get(Constants::CONFIG_ACCEPT_INSTALLMENTS, Constants::ACCEPT_INSTALLMENTS_NO);
 
         if ($acceptsInstallments == Constants::ACCEPT_INSTALLMENTS_FIXED) {
-            $maxInstallments = (int)Configuration::get(Cardlink_Checkout\Constants::CONFIG_FIXED_MAX_INSTALLMENTS, 0);
+            $maxInstallments = (int) Configuration::get(Cardlink_Checkout\Constants::CONFIG_FIXED_MAX_INSTALLMENTS, 0);
         } else if ($acceptsInstallments == Constants::ACCEPT_INSTALLMENTS_ORDER_AMOUNT) {
             $ranges = new \PrestaShopCollection(Cardlink_Checkout\Installments::class);
             $ranges->orderBy('min_amount');
@@ -98,8 +98,8 @@ class PaymentHelper
             if (count($ranges) > 0) {
 
                 foreach ($ranges as $range) {
-                    $min_amount = (float)$range->min_amount;
-                    $max_amount = (float)$range->max_amount;
+                    $min_amount = (float) $range->min_amount;
+                    $max_amount = (float) $range->max_amount;
 
                     if (
                         $min_amount <= $orderAmount
@@ -108,7 +108,7 @@ class PaymentHelper
                             || $max_amount == 0
                         )
                     ) {
-                        $maxInstallments = (int)$range->max_installments;
+                        $maxInstallments = (int) $range->max_installments;
                     }
                 }
             }
@@ -195,8 +195,8 @@ class PaymentHelper
 
         // Order information
         $formData[ApiFields::OrderDescription] = "ORDER ${id_order}";
-        $formData[ApiFields::OrderId] =  $id_order;
-        $formData[ApiFields::OrderAmount] =  floatval($order_details->total_paid); // Get order total amount
+        $formData[ApiFields::OrderId] = $id_order;
+        $formData[ApiFields::OrderAmount] = floatval($order_details->total_paid); // Get order total amount
         $formData[ApiFields::Currency] = $currency->iso_code; // Get order currency code
 
         // Payer/customer information
@@ -253,7 +253,7 @@ class PaymentHelper
         }
 
         // Calculate the digest of the transaction request data and append it.
-        $signedFormData = self::signRequestFormData($formData,  $sharedSecret);
+        $signedFormData = self::signRequestFormData($formData, $sharedSecret);
 
         // if ($helper->logDebugInfoEnabled()) {
         //     $helper->logMessage("Valid payment request created for order {$signedFormData[ApiFields::OrderId]}.");
@@ -304,7 +304,7 @@ class PaymentHelper
         foreach (ApiFields::TRANSACTION_RESPONSE_DIGEST_CALCULATION_FIELD_ORDER as $field) {
             if ($field != ApiFields::Digest) {
                 if (array_key_exists($field, $formData)) {
-                    $concatenatedData .=  $formData[$field];
+                    $concatenatedData .= $formData[$field];
                 }
             }
         }
@@ -335,7 +335,10 @@ class PaymentHelper
     {
         $errors = [];
 
-        if ($order_details->current_state == Configuration::get('PS_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT')) {
+        if (
+            $order_details->current_state == Configuration::get('PS_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT')
+            || $order_details->current_state == Configuration::get('CARDLINK_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT')
+        ) {
             $order_details->addOrderPayment(
                 $order_details->total_paid,
                 null,
@@ -343,18 +346,18 @@ class PaymentHelper
             );
 
             $history = new OrderHistory();
-            $history->id_order = (int)$order_details->id;
+            $history->id_order = (int) $order_details->id;
 
             if ($responseData[ApiFields::Status] === Constants::TRANSACTION_STATUS_AUTHORIZED) {
                 $history->changeIdOrderState(
-                    (int)Configuration::get(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_AUTHORIZED, null, null, null, Configuration::get('PS_CHECKOUT_STATE_AUTHORIZED')),
-                    (int)($order_details->id),
+                    (int) Configuration::get(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_AUTHORIZED, null, null, null, Configuration::get('PS_CHECKOUT_STATE_AUTHORIZED')),
+                    (int) ($order_details->id),
                     true
                 );
             } else if ($responseData[ApiFields::Status] === Constants::TRANSACTION_STATUS_CAPTURED) {
                 $history->changeIdOrderState(
-                    (int)Configuration::get(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_CAPTURED, null, null, null, Configuration::get('PS_OS_PAYMENT')),
-                    (int)($order_details->id),
+                    (int) Configuration::get(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_CAPTURED, null, null, null, Configuration::get('PS_OS_PAYMENT')),
+                    (int) ($order_details->id),
                     true
                 );
             }
@@ -381,8 +384,8 @@ class PaymentHelper
         if ($order_details->current_state != $id_canceled_state) {
             // Cancel order and revert cart contents.
             $history = new OrderHistory();
-            $history->id_order = (int)$order_details->id;
-            $history->changeIdOrderState($id_canceled_state, (int)($order_details->id));
+            $history->id_order = (int) $order_details->id;
+            $history->changeIdOrderState($id_canceled_state, (int) ($order_details->id));
             $history->save();
 
             if ($restoreCart) {
@@ -402,7 +405,7 @@ class PaymentHelper
     {
         $errors = [];
 
-        $id_order = (int)$order_details->id;
+        $id_order = (int) $order_details->id;
         $oldCart = new Cart(Order::getCartIdStatic($id_order, $order_details->id_customer));
         $duplication = $oldCart->duplicate();
 

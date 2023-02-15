@@ -32,19 +32,19 @@ class Cardlink_Checkout extends PaymentModule
      */
     public function __construct()
     {
-        $this->name                   = Cardlink_Checkout\Constants::MODULE_NAME;
-        $this->tab                    = 'payments_gateways';
-        $this->version                = '1.0.2';
-        $this->author                 = 'Cardlink S.A.';
-        $this->controllers            = array('payment', 'validation');
-        $this->currencies             = true;
-        $this->currencies_mode        = 'checkbox';
-        $this->bootstrap              = true;
-        $this->displayName            = 'Cardlink Checkout';
-        $this->description            = 'Cardlink Payment Gateway (Redirect Mode)';
-        $this->confirmUninstall       = $this->l('Are you sure you want to uninstall this module?');
+        $this->name = Cardlink_Checkout\Constants::MODULE_NAME;
+        $this->tab = 'payments_gateways';
+        $this->version = '1.0.3';
+        $this->author = 'Cardlink S.A.';
+        $this->controllers = array('payment', 'validation');
+        $this->currencies = true;
+        $this->currencies_mode = 'checkbox';
+        $this->bootstrap = true;
+        $this->displayName = 'Cardlink Checkout';
+        $this->description = 'Cardlink Payment Gateway (Redirect Mode)';
+        $this->confirmUninstall = $this->l('Are you sure you want to uninstall this module?');
         $this->ps_versions_compliancy = array('min' => '1.7.0', 'max' => _PS_VERSION_);
-        $this->is_eu_compatible       = 1;
+        $this->is_eu_compatible = 1;
 
         parent::__construct();
     }
@@ -63,7 +63,7 @@ class Cardlink_Checkout extends PaymentModule
             && $this->registerHook('displayBackOfficeHeader')
             && $this->registerHook('displayHeader')
             && $this->registerHook('actionEmailSendBefore')
-
+            && $this->createWaitingPaymentOrderStateIfMissing()
             && Db::getInstance()->execute('
             CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . Cardlink_Checkout\Constants::TABLE_NAME_INSTALLMENTS . '` (
                 `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -120,14 +120,15 @@ class Cardlink_Checkout extends PaymentModule
     public function hookActionEmailSendBefore($params)
     {
         if ($params['template'] === 'order_conf') {
-            $order_id = (int)$params['templateVars']['{id_order}'];
+            $order_id = (int) $params['templateVars']['{id_order}'];
 
             $order_details = new Order($order_id);
 
             if (
                 Validate::isLoadedObject($order_details)
                 && $order_details->module == Cardlink_Checkout\Constants::MODULE_NAME
-                && $order_details->current_state == Configuration::get('PS_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT')
+                && ($order_details->current_state == Configuration::get('PS_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT')
+                    || $order_details->current_state == Configuration::get('CARDLINK_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT'))
             ) {
                 return false;
             }
@@ -135,13 +136,46 @@ class Cardlink_Checkout extends PaymentModule
         return true;
     }
 
+    private function createWaitingPaymentOrderStateIfMissing()
+    {
+        $defaultPsCheckoutWaitingStateExists = Configuration::get('PS_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT');
+        $cardlinkPsCheckoutWaitingStateExists = Configuration::get('CARDLINK_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT');
+
+        // If the state does not exist, we create it.
+        if (!$defaultPsCheckoutWaitingStateExists && !$cardlinkPsCheckoutWaitingStateExists) {
+            // create new order state
+            $order_state = new OrderState();
+            $order_state->color = '#34209E';
+            $order_state->unremovable = true;
+            $order_state->send_email = false;
+            $order_state->module_name = $this->name;
+            $order_state->template = array();
+            $order_state->name = array();
+            $languages = Language::getLanguages(false);
+            foreach ($languages as $language) {
+                $order_state->name[$language['id_lang']] = $this->l('Waiting for Credit Card Payment', false, $language['locale']);
+                $order_state->template[$language['id_lang']] = 'payment';
+            }
+            // Update object
+            if ($order_state->add()) {
+                $source = dirname(__FILE__) . '/icons/card-inserting-16.gif';
+                $destination = dirname(__FILE__) . '/../../img/os/' . (int) $order_state->id . '.gif';
+                copy($source, $destination);
+
+                Configuration::updateValue('CARDLINK_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT', $order_state->id);
+            }
+        }
+
+        return true;
+    }
+
     private function getPostedMultilingualValue($baseName)
     {
         $value = [];
         foreach (Language::getLanguages(false) as $k => $language) {
-            $langId = (int)$language['id_lang'];
+            $langId = (int) $language['id_lang'];
 
-            $value[$langId] =  Tools::getValue($baseName . '_' . $langId);
+            $value[$langId] = Tools::getValue($baseName . '_' . $langId);
         }
         return $value;
     }
@@ -214,14 +248,14 @@ class Cardlink_Checkout extends PaymentModule
         $retCron = '<div class="panel col-lg-12">';
         $retCron .= '<div class="panel-heading">' . $this->l('Cron Configuration', false, $this->context->language->locale) . '</div>';
         $retCron .= ' <div style="padding-bottom:20px;">' . $this->l('Execute hourly to automatically cancel abandoned orders.', false, $this->context->language->locale) . '</div>';
-        $retCron .= ' <div><strong>Cron URL:</strong> ' .  Context::getContext()->link->getModuleLink(Cardlink_Checkout\Constants::MODULE_NAME, 'cron', array()) . '</div>';
+        $retCron .= ' <div><strong>Cron URL:</strong> ' . Context::getContext()->link->getModuleLink(Cardlink_Checkout\Constants::MODULE_NAME, 'cron', array()) . '</div>';
         $retCron .= ' <div><strong>Cron script:</strong> ' . __DIR__ . DIRECTORY_SEPARATOR . 'cron.php' . '</div>';
         $retCron .= '</div>';
 
         $retA = $this->renderAdditionalOptionsList();
         $retC = $this->renderConfigurationForm();
 
-        return  $retC . $retA . $retCron;
+        return $retC . $retA . $retCron;
     }
 
     protected function renderConfigurationForm()
@@ -387,7 +421,7 @@ class Cardlink_Checkout extends PaymentModule
                         'name' => Cardlink_Checkout\Constants::CONFIG_ACCEPT_INSTALLMENTS,
                         'label' => $this->l('Accept Installments'),
                         'desc' => $this->l('Enable installment payments and define the maximum number of Installments.')
-                            . ' ' . $this->l('Always save your settings after changing this option.'),
+                        . ' ' . $this->l('Always save your settings after changing this option.'),
                         'hint' => null,
                         'options' => [
                             'query' => [
@@ -537,13 +571,13 @@ class Cardlink_Checkout extends PaymentModule
 
         $languages = $this->context->controller->getLanguages();
         foreach ($languages as $k => $language) {
-            $languages[$k]['is_default'] = (int)$language['id_lang'] == $lang->id;
+            $languages[$k]['is_default'] = (int) $language['id_lang'] == $lang->id;
         }
         $helper->languages = $languages;
 
         $shop = Context::getContext()->shop;
-        $idShopGroup = (int)$shop->id_shop_group;
-        $idShop = (int)$shop->id;
+        $idShopGroup = (int) $shop->id_shop_group;
+        $idShop = (int) $shop->id;
 
         // Load current or default values into the form
         foreach ($helper->languages as $language) {
@@ -552,7 +586,7 @@ class Cardlink_Checkout extends PaymentModule
         }
         $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_CAPTURED] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_CAPTURED, null, null, null, Configuration::get('PS_OS_PAYMENT'));
         $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_AUTHORIZED] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_AUTHORIZED, null, null, null, Configuration::get('PS_CHECKOUT_STATE_AUTHORIZED'));
-        $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_BUSINESS_PARTNER] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_DESCRIPTION, null, null, null, Cardlink_Checkout\Constants::BUSINESS_PARTNER_CARDLINK);
+        $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_BUSINESS_PARTNER] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_BUSINESS_PARTNER, null, null, null, Cardlink_Checkout\Constants::BUSINESS_PARTNER_CARDLINK);
         $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_MERCHANT_ID] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_MERCHANT_ID, null, null, null, '');
         $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_SHARED_SECRET] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_SHARED_SECRET, null, null, null, '');
         $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_TRANSACTION_ENVIRONMENT] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_TRANSACTION_ENVIRONMENT, null, null, null, Cardlink_Checkout\Constants::TRANSACTION_ENVIRONMENT_SANDBOX);
@@ -649,11 +683,11 @@ class Cardlink_Checkout extends PaymentModule
         $customer = $this->context->customer;
 
         global $cookie;
-        $idLang = (int)$cookie->id_lang;
+        $idLang = (int) $cookie->id_lang;
 
         $shop = Context::getContext()->shop;
-        $idShopGroup = (int)$shop->id_shop_group;
-        $idShop = (int)$shop->id;
+        $idShopGroup = (int) $shop->id_shop_group;
+        $idShop = (int) $shop->id;
 
         $title = Configuration::get(Cardlink_Checkout\Constants::CONFIG_TITLE, $idLang, $idShopGroup, $idShop, '');
         $description = Configuration::get(Cardlink_Checkout\Constants::CONFIG_DESCRIPTION, $idLang, $idShopGroup, $idShop, '');
@@ -674,7 +708,7 @@ class Cardlink_Checkout extends PaymentModule
                         'id' => $storedToken->id,
                         'type' => $storedToken->type,
                         'type_label' => strtoupper($storedToken->type),
-                        'last_digits' =>  $storedToken->last_4digits,
+                        'last_digits' => $storedToken->last_4digits,
                         'expires' => $storedToken->getFormattedExpiryDate(),
                         'image_url' => $this->_path . 'views/images/' . $storedToken->type . '.png'
                     ];
@@ -768,7 +802,8 @@ class Cardlink_Checkout extends PaymentModule
         $total_reduction_value_ti,
         $total_reduction_value_tex,
         $id_order_state
-    ) {
+    )
+    {
         return parent::createOrderCartRules(
             $order,
             $cart,

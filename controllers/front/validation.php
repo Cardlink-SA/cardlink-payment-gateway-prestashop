@@ -60,13 +60,28 @@ class Cardlink_CheckoutValidationModuleFrontController extends ModuleFrontContro
         /**
          * Place the order
          */
+
+        $orderStates = [
+            Configuration::get('CARDLINK_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT'),
+            Configuration::get('PS_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT')
+        ];
+
+        $orderState = 0;
+
+        foreach ($orderStates as $val) {
+            if ($val !== false) {
+                $orderState = $val;
+                break;
+            }
+        }
+
         $this->module->validateOrder(
             (int) $this->context->cart->id,
-            Configuration::get('PS_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT'),
+            $orderState,
             $total_order,
             $this->module->displayName,
             null,
-            null,
+            [],
             (int) $this->context->currency->id,
             false,
             $customer->secure_key
@@ -78,8 +93,8 @@ class Cardlink_CheckoutValidationModuleFrontController extends ModuleFrontContro
         $max_installments = Cardlink_Checkout\PaymentHelper::getMaxInstallments($total_order);
 
         $redirectParameters = [
-            'id_cart' => (int)$cart->id,
-            'id_module' => (int)$this->module->id,
+            'id_cart' => (int) $cart->id,
+            'id_module' => (int) $this->module->id,
             'id_order' => $this->module->currentOrder,
             'key' => $customer->secure_key,
             'installments' => min($installments, $max_installments),
