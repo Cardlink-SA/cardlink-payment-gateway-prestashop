@@ -75,8 +75,6 @@ $_MODULE['<{cardlink_checkout}prestashop>admincardlink_checkoutinstallmentsmanag
 $_MODULE['<{cardlink_checkout}prestashop>validation_e2b7dec8fa4b498156dfee6e4c84b156'] = 'Η μέθοδος πληρωμής δεν είναι διαθέσιμη.';
 $_MODULE['<{cardlink_checkout}prestashop>payment_56ca67fde405db4d75fb5fc3350db81b'] = 'Λυπούμαστε. Δεν είναι δυνατό να ανανεώσουμε την παραγγελία σας.';
 $_MODULE['<{cardlink_checkout}prestashop>payment_b22604f6ddd3fb79ff38568a5a0141e0'] = 'Κάποια είδη δεν είναι πλέον διαθέσιμα και δεν είναι δυνατό να ανανεώσουμε την παραγγελία σας.';
-$_MODULE['<{cardlink_checkout}prestashop>redirection_form_1fc078f3cd8682fbc81ad45b9e937967'] = 'Σας μεταφέρουμε στο περιβάλλον πληρωμών της Cardlink...';
-$_MODULE['<{cardlink_checkout}prestashop>response_form_84815f958c98f36e4102adfbdade0536'] = 'Σας επιστρέφουμε στο ηλεκτρονικό μας κατάστημα...';
 $_MODULE['<{cardlink_checkout}prestashop>payment_options_2ca41856e6e294fb61a90d569c8eaa79'] = 'Είσαστε σίγουρος/η ότι θέλετε να αφαιρέσετε την αποθηκευμένη κάρτα;';
 $_MODULE['<{cardlink_checkout}prestashop>payment_options_ba5376b5ba3216a7a51eabb18265d921'] = 'Δόσεις';
 $_MODULE['<{cardlink_checkout}prestashop>payment_options_a63d0f1f1475364e28282a746ec8c850'] = 'Χωρίς δόσεις';
@@ -85,3 +83,15 @@ $_MODULE['<{cardlink_checkout}prestashop>payment_options_a6825ed2fa12e1e75058f16
 $_MODULE['<{cardlink_checkout}prestashop>payment_options_1063e38cb53d94d386f21227fcd84717'] = 'Αφαίρεση';
 $_MODULE['<{cardlink_checkout}prestashop>payment_options_200d2b12a8d5ff9ac86284491613bee0'] = 'Νέα κάρτα';
 $_MODULE['<{cardlink_checkout}prestashop>payment_options_0129b64e19a76718bc0eeb3ea0f78329'] = 'Ασφαλής αποθήκευση κάρτας';
+$_MODULE['<{cardlink_checkout}prestashop>payment_canceled_0a3fe8ffac2bebe019f59fb380b33944'] = 'Cardlink - Πληρωμή με κάρτα';
+$_MODULE['<{cardlink_checkout}prestashop>payment_canceled_31fd85a6deddcd6b703ac690752592df'] = 'Η πληρωμή ακυρώθηκε';
+$_MODULE['<{cardlink_checkout}prestashop>payment_canceled_dd006be3c0ff14d823222480b158ad85'] = 'Η πληρωμή ακυρώθηκε από τον πελάτη.';
+$_MODULE['<{cardlink_checkout}prestashop>response_form_84815f958c98f36e4102adfbdade0536'] = 'Σας επιστρέφουμε στο ηλεκτρονικό μας κατάστημα...';
+$_MODULE['<{cardlink_checkout}prestashop>redirection_form_1fc078f3cd8682fbc81ad45b9e937967'] = 'Σας μεταφέρουμε στο περιβάλλον πληρωμών της Cardlink...';
+$_MODULE['<{cardlink_checkout}prestashop>payment_error_0a3fe8ffac2bebe019f59fb380b33944'] = 'Cardlink - Πληρωμή με κάρτα';
+$_MODULE['<{cardlink_checkout}prestashop>payment_error_5d3bd47464820495fe16db91f5128ca1'] = 'Ένα σφάλμα παρουσιάστηκε κατά την πληρωμή';
+$_MODULE['<{cardlink_checkout}prestashop>payment_error_e20cbb947afcf84cf58de1358ee1068d'] = 'Μήνυμα σφάλματος';
+$_MODULE['<{cardlink_checkout}prestashop>payment_denied_0a3fe8ffac2bebe019f59fb380b33944'] = 'Cardlink - Πληρωμή με κάρτα';
+$_MODULE['<{cardlink_checkout}prestashop>payment_denied_3a83a4c5392e28b629c8e6ae23208875'] = 'Η πληρωμή δεν έγινε δεκτή';
+$_MODULE['<{cardlink_checkout}prestashop>payment_denied_c522cf23e0c9e6bbe706d86812177fd4'] = 'Η πληρωμή δεν έγινε δεκτή από την κάρτα ή από την τράπεζα.';
+$_MODULE['<{cardlink_checkout}prestashop>payment_denied_e20cbb947afcf84cf58de1358ee1068d'] = 'Μήνυμα σφάλματος';

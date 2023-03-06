@@ -61,6 +61,8 @@ class Cardlink_CheckoutResponseModuleFrontController extends ModuleFrontControll
         $id_order = intval($responseData[Cardlink_Checkout\ApiFields::OrderId]);
         $order_details = new Order($id_order);
 
+        $order_cart_id = Cart::getCartIdByOrderId($id_order);
+
         $customer = new Customer($order_details->id_customer);
 
         // /**
@@ -107,34 +109,33 @@ class Cardlink_CheckoutResponseModuleFrontController extends ModuleFrontControll
 
         // If the payment flow executed inside the IFRAME, send out a redirection form page to force open the final response page in the parent frame (store window/tab).
         if (boolval(Configuration::get(Cardlink_Checkout\Constants::CONFIG_USE_IFRAME))) {
-            $queryParameters = [];
-            $controller = '';
-
             if ($success) {
-                $controller = 'order-confirmation';
                 $redirectParameters = [
-                    'id_cart' => (int)$cart->id,
-                    'id_module' => (int)$this->module->id,
-                    'id_order' => $id_order
+                    'id_shop' => $id_shop,
+                    'id_cart' => (int) $order_cart_id,
+                    'id_module' => (int) $this->module->id,
+                    'id_order' => $id_order,
+                    'key' => $customer->secure_key
                 ];
+
+                $redirectParameters['key'] = $customer->secure_key;
+                $redirectParameters['message'] = $responseData[Cardlink_Checkout\ApiFields::Message];
+
+                $redirectUrl = Context::getContext()->link->getPageLink('order-confirmation', true, $id_lang, $redirectParameters, false, $id_shop);
             } else {
-                $controller = 'cart';
-                $redirectParameters = [];
-            }
+                $redirectParameters = [
+                    'status' => $responseData[Cardlink_Checkout\ApiFields::Status],
+                    'message' => $responseData[Cardlink_Checkout\ApiFields::Message],
+                    'key' => $customer->secure_key
+                ];
 
-            $redirectParameters['key'] = $customer->secure_key;
-            $redirectParameters['message'] = $responseData[Cardlink_Checkout\ApiFields::Message];
-
-            $redirectUrl = Context::getContext()->link->getPageLink($controller, true, $id_lang, $redirectParameters, false, $id_shop);
-            $parts = parse_url($redirectUrl);
-            if (isset($parts[PHP_URL_QUERY])) {
-                parse_str($parts[PHP_URL_QUERY], $queryParameters);
+                $redirectUrl = $this->context->link->getModuleLink($this->module->name, 'payment', $redirectParameters, true);
             }
 
             $this->context->smarty->assign([
                 'action' => explode('?', $redirectUrl)[0],
-                'form_data' => $queryParameters,
-                'css_url' =>  $this->module->getPathUri() . 'views/css/front-custom.css',
+                'form_data' => $redirectParameters,
+                'css_url' => $this->module->getPathUri() . 'views/css/front-custom.css',
                 'use_iframe' => boolval(Configuration::get(Cardlink_Checkout\Constants::CONFIG_USE_IFRAME, '0'))
             ]);
 
@@ -147,15 +148,22 @@ class Cardlink_CheckoutResponseModuleFrontController extends ModuleFrontControll
                 $redirectParameters = [
                     'controller' => 'order-confirmation',
                     'id_shop' => $id_shop,
-                    'id_cart' => (int)$cart->id,
-                    'id_module' => (int)$this->module->id,
+                    'id_cart' => (int) $order_cart_id,
+                    'id_module' => (int) $this->module->id,
                     'id_order' => $id_order,
                     'key' => $customer->secure_key
                 ];
 
                 Tools::redirect('index.php?' . http_build_query($redirectParameters));
             } else {
-                Tools::redirect('index.php?controller=cart');
+                $redirectParameters = [
+                    'status' => $responseData[Cardlink_Checkout\ApiFields::Status],
+                    'message' => $responseData[Cardlink_Checkout\ApiFields::Message],
+                    'key' => $customer->secure_key
+                ];
+
+                $redirectUrl = $this->context->link->getModuleLink($this->module->name, 'payment', $redirectParameters, true);
+                Tools::redirect($redirectUrl);
             }
             return;
         }
@@ -164,13 +172,13 @@ class Cardlink_CheckoutResponseModuleFrontController extends ModuleFrontControll
     public function sendOrderConfirmationEmail(Order $order)
     {
         $customer = new Customer($order->id_customer);
-        $order_status = new OrderState((int)$order->current_state, (int)$order->id_lang);
+        $order_status = new OrderState((int) $order->current_state, (int) $order->id_lang);
 
         // Join PDF invoice
-        if ((int)Configuration::get('PS_INVOICE') && $order_status->invoice && $order->invoice_number) {
+        if ((int) Configuration::get('PS_INVOICE') && $order_status->invoice && $order->invoice_number) {
             $pdf = new PDF($order->getInvoicesCollection(), PDF::TEMPLATE_INVOICE, $this->context->smarty);
             $file_attachement['content'] = $pdf->render(false);
-            $file_attachement['name'] = Configuration::get('PS_INVOICE_PREFIX', (int)$order->id_lang, null, $order->id_shop) . sprintf('%06d', $order->invoice_number) . '.pdf';
+            $file_attachement['name'] = Configuration::get('PS_INVOICE_PREFIX', (int) $order->id_lang, null, $order->id_shop) . sprintf('%06d', $order->invoice_number) . '.pdf';
             $file_attachement['mime'] = 'application/pdf';
         } else {
             $file_attachement = null;
@@ -179,9 +187,9 @@ class Cardlink_CheckoutResponseModuleFrontController extends ModuleFrontControll
         $data = $this->fillOrderConfirmationData($order->id);
 
         Mail::Send(
-            (int)$order->id_lang,
+            (int) $order->id_lang,
             'order_conf',
-            Mail::l('Order confirmation', (int)$order->id_lang),
+            Mail::l('Order confirmation', (int) $order->id_lang),
             $data,
             $customer->email,
             $customer->firstname . ' ' . $customer->lastname,
@@ -191,7 +199,7 @@ class Cardlink_CheckoutResponseModuleFrontController extends ModuleFrontControll
             null,
             _PS_MAIL_DIR_,
             false,
-            (int)$order->id_shop
+            (int) $order->id_shop
         );
     }
 

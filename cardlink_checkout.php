@@ -34,7 +34,7 @@ class Cardlink_Checkout extends PaymentModule
     {
         $this->name = Cardlink_Checkout\Constants::MODULE_NAME;
         $this->tab = 'payments_gateways';
-        $this->version = '1.0.3';
+        $this->version = '1.0.4';
         $this->author = 'Cardlink S.A.';
         $this->controllers = array('payment', 'validation');
         $this->currencies = true;
