@@ -205,18 +205,18 @@ class PaymentHelper
 
         // Billing information
         $formData[ApiFields::BillCountry] = $billing_country->iso_code;
-        if ($billing_state->id != null) {
-            $formData[ApiFields::BillState] = $billing_state->iso_code;
-        }
+        // if ($billing_state->id != null) {
+        //     $formData[ApiFields::BillState] = $billing_state->iso_code;
+        // }
         $formData[ApiFields::BillZip] = $billing_details->postcode;
         $formData[ApiFields::BillCity] = $billing_details->city;
         $formData[ApiFields::BillAddress] = $billing_details->address1;
 
         // Shipping information
         $formData[ApiFields::ShipCountry] = $shipping_country->iso_code;
-        if ($billing_state->id != null) {
-            $formData[ApiFields::ShipState] = $shipping_state->iso_code;
-        }
+        // if ($billing_state->id != null) {
+        //     $formData[ApiFields::ShipState] = $shipping_state->iso_code;
+        // }
         $formData[ApiFields::ShipZip] = $shipping_details->postcode;
         $formData[ApiFields::ShipCity] = $shipping_details->city;
         $formData[ApiFields::ShipAddress] = $shipping_details->address1;
