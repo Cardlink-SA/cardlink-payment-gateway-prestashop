@@ -30,7 +30,7 @@ class Cardlink_Checkout extends PaymentModule
     {
         $this->name = Cardlink_Checkout\Constants::MODULE_NAME;
         $this->tab = 'payments_gateways';
-        $this->version = '1.0.6';
+        $this->version = '1.0.9';
         $this->author = 'Cardlink S.A.';
         $this->controllers = array('payment', 'validation');
         $this->currencies = true;
@@ -189,8 +189,18 @@ class Cardlink_Checkout extends PaymentModule
         // this part is executed only when the form is submitted
         if (Tools::isSubmit('submit' . $this->name)) {
             // // retrieve the configuration values set by the user
-            $title = self::getPostedMultilingualValue(Cardlink_Checkout\Constants::CONFIG_TITLE, '');
+            $title = self::getPostedMultilingualValue(Cardlink_Checkout\Constants::CONFIG_TITLE, 'Pay using card');
             $description = self::getPostedMultilingualValue(Cardlink_Checkout\Constants::CONFIG_DESCRIPTION, '');
+
+            $enableIrisPayments = Cardlink_Checkout\Constants::ENABLE_IRIS_PAYMENTS && Tools::getValue(Cardlink_Checkout\Constants::CONFIG_ENABLE_IRIS, '0');
+            $diasCode = trim(Tools::getValue(Cardlink_Checkout\Constants::CONFIG_DIAS_CODE, ''));
+            $iris_title = self::getPostedMultilingualValue(Cardlink_Checkout\Constants::CONFIG_IRIS_TITLE, 'Pay using IRIS');
+            $iris_description = self::getPostedMultilingualValue(Cardlink_Checkout\Constants::CONFIG_IRIS_DESCRIPTION, '');
+
+            if ($diasCode == '') {
+                $enableIrisPayments = false;
+            }
+
             $orderStatusCaptured = Tools::getValue(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_CAPTURED, Configuration::get('PS_OS_PAYMENT'));
             $orderStatusAuthorized = Tools::getValue(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_AUTHORIZED, Configuration::get('PS_CHECKOUT_STATE_AUTHORIZED'));
             $businessPartner = Tools::getValue(Cardlink_Checkout\Constants::CONFIG_BUSINESS_PARTNER, Cardlink_Checkout\Constants::BUSINESS_PARTNER_CARDLINK);
@@ -212,6 +222,12 @@ class Cardlink_Checkout extends PaymentModule
 
             Configuration::updateValue(Cardlink_Checkout\Constants::CONFIG_TITLE, $title);
             Configuration::updateValue(Cardlink_Checkout\Constants::CONFIG_DESCRIPTION, $description);
+
+            Configuration::updateValue(Cardlink_Checkout\Constants::CONFIG_ENABLE_IRIS, $enableIrisPayments);
+            Configuration::updateValue(Cardlink_Checkout\Constants::CONFIG_DIAS_CODE, $diasCode);
+            Configuration::updateValue(Cardlink_Checkout\Constants::CONFIG_IRIS_TITLE, $iris_title);
+            Configuration::updateValue(Cardlink_Checkout\Constants::CONFIG_IRIS_DESCRIPTION, $iris_description);
+
             Configuration::updateValue(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_CAPTURED, $orderStatusCaptured);
             Configuration::updateValue(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_AUTHORIZED, $orderStatusAuthorized);
             Configuration::updateValue(Cardlink_Checkout\Constants::CONFIG_BUSINESS_PARTNER, $businessPartner);
@@ -417,7 +433,7 @@ class Cardlink_Checkout extends PaymentModule
                         'name' => Cardlink_Checkout\Constants::CONFIG_ACCEPT_INSTALLMENTS,
                         'label' => $this->l('Accept Installments'),
                         'desc' => $this->l('Enable installment payments and define the maximum number of Installments.')
-                        . ' ' . $this->l('Always save your settings after changing this option.'),
+                            . ' ' . $this->l('Always save your settings after changing this option.'),
                         'hint' => null,
                         'options' => [
                             'query' => [
@@ -539,7 +555,7 @@ class Cardlink_Checkout extends PaymentModule
                         'maxlength' => 255,
                         'required' => false,
                         'pattern' => 'https://.*'
-                    ],
+                    ]
                 ],
                 'submit' => [
                     'title' => $this->l('Save'),
@@ -547,6 +563,65 @@ class Cardlink_Checkout extends PaymentModule
                 ],
             ],
         ];
+
+        if (Cardlink_Checkout\Constants::ENABLE_IRIS_PAYMENTS) {
+            $form['form']['input'] = array_merge($form['form']['input'], [
+                [
+                    'type' => 'select',
+                    'name' => Cardlink_Checkout\Constants::CONFIG_ENABLE_IRIS,
+                    'label' => $this->l('Pay through IRIS'),
+                    'desc' => $this->l('Allow customers to pay using IRIS.'),
+                    'hint' => null,
+                    'options' => [
+                        'query' => [
+                            [
+                                'id_option' => '1',
+                                'name' => $this->l('Enabled')
+                            ],
+                            [
+                                'id_option' => '0',
+                                'name' => $this->l('Disabled')
+                            ]
+                        ],
+                        'id' => 'id_option',
+                        'name' => 'name'
+                    ]
+                ],
+                [
+                    'type' => 'text',
+                    'name' => Cardlink_Checkout\Constants::CONFIG_DIAS_CODE,
+                    'label' => $this->l('DIAS Code'),
+                    'desc' => $this->l('The merchant code for the DIAS network.'),
+                    'hint' => null,
+                    'size' => 50,
+                    'maxlength' => 255,
+                    'required' => false,
+                    'pattern' => '0-9'
+                ],
+                [
+                    'type' => 'text',
+                    'lang' => true,
+                    'name' => Cardlink_Checkout\Constants::CONFIG_IRIS_TITLE,
+                    'label' => $this->l('Title for IRIS'),
+                    'desc' => $this->l('The title of the IRIS payment method to be displayed during the checkout.'),
+                    'hint' => null,
+                    'size' => 50,
+                    'maxlength' => 50,
+                    'required' => true,
+                ],
+                [
+                    'type' => 'textarea',
+                    'lang' => true,
+                    'name' => Cardlink_Checkout\Constants::CONFIG_IRIS_DESCRIPTION,
+                    'label' => $this->l('Description for IRIS'),
+                    'desc' => $this->l('A short description of the IRIS payment method to be displayed during the checkout.'),
+                    'hint' => null,
+                    'cols' => 50,
+                    'rows' => 10,
+                    'required' => false,
+                ]
+            ]);
+        }
 
         $helper = new HelperForm();
 
@@ -578,8 +653,11 @@ class Cardlink_Checkout extends PaymentModule
         // Load current or default values into the form
         foreach ($helper->languages as $language) {
             $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_TITLE][$language['id_lang']] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_TITLE, $language['id_lang'], $idShopGroup, $idShop, $this->l('Pay through Cardlink', false, $language['locale']));
-            $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_DESCRIPTION][$language['id_lang']] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_DESCRIPTION, $language['id_lang'], $idShopGroup, $idShop, $this->l('Pay Via Cardlink: Accepts Visa, Mastercard, Maestro, American Express, Diners, Discover.', false, $language['locale']));
+            $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_DESCRIPTION][$language['id_lang']] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_DESCRIPTION, $language['id_lang'], $idShopGroup, $idShop, $this->l('Pay via Cardlink: Accepts Visa, Mastercard, Maestro, American Express, Diners, Discover.', false, $language['locale']));
+            $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_IRIS_TITLE][$language['id_lang']] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_IRIS_TITLE, $language['id_lang'], $idShopGroup, $idShop, $this->l('Pay through IRIS', false, $language['locale']));
+            $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_IRIS_DESCRIPTION][$language['id_lang']] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_IRIS_DESCRIPTION, $language['id_lang'], $idShopGroup, $idShop, $this->l('Pay via your bank\'s web banking application.', false, $language['locale']));
         }
+
         $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_CAPTURED] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_CAPTURED, null, null, null, Configuration::get('PS_OS_PAYMENT'));
         $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_AUTHORIZED] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_AUTHORIZED, null, null, null, Configuration::get('PS_CHECKOUT_STATE_AUTHORIZED'));
         $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_BUSINESS_PARTNER] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_BUSINESS_PARTNER, null, null, null, Cardlink_Checkout\Constants::BUSINESS_PARTNER_CARDLINK);
@@ -594,6 +672,9 @@ class Cardlink_Checkout extends PaymentModule
         $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_FORCE_STORE_LANGUAGE] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_FORCE_STORE_LANGUAGE, null, null, null, '0');
         $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_DISPLAY_LOGO] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_DISPLAY_LOGO, null, null, null, '1');
         $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_CSS_URL] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_CSS_URL, null, null, null, '');
+
+        $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_ENABLE_IRIS] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_ENABLE_IRIS, null, null, null, '0');
+        $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_DIAS_CODE] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_DIAS_CODE, null, null, null, '');
 
         return $helper->generateForm([$form]);
     }
@@ -687,6 +768,8 @@ class Cardlink_Checkout extends PaymentModule
 
         $title = Configuration::get(Cardlink_Checkout\Constants::CONFIG_TITLE, $idLang, $idShopGroup, $idShop, '');
         $description = Configuration::get(Cardlink_Checkout\Constants::CONFIG_DESCRIPTION, $idLang, $idShopGroup, $idShop, '');
+        $iris_title = Configuration::get(Cardlink_Checkout\Constants::CONFIG_IRIS_TITLE, $idLang, $idShopGroup, $idShop, '');
+        $iris_description = Configuration::get(Cardlink_Checkout\Constants::CONFIG_IRIS_DESCRIPTION, $idLang, $idShopGroup, $idShop, '');
         $maxInstallments = Cardlink_Checkout\PaymentHelper::getMaxInstallments($total_cart);
         $allowsTokenization = Configuration::get(Cardlink_Checkout\Constants::CONFIG_ALLOW_TOKENIZATION, '0') == '1';
         $customerTokens = [];
@@ -696,7 +779,6 @@ class Cardlink_Checkout extends PaymentModule
             $storedTokens->where('id_customer', '=', $customer->id);
             $storedTokens->where('active', '=', true);
             $storedTokens->orderBy('expiration', 'DESC');
-
 
             foreach ($storedTokens as $storedToken) {
                 if ($storedToken->isValid()) {
@@ -735,26 +817,50 @@ class Cardlink_Checkout extends PaymentModule
             'maxInstallments' => $maxInstallments,
             'allowsTokenization' => $allowsTokenization,
             'storedTokens' => $customerTokens,
-            'deleteStoredTokenUrl' => $this->context->link->getModuleLink($this->name, 'tokenization', ['ajax' => true], true)
+            'deleteStoredTokenUrl' => $this->context->link->getModuleLink($this->name, 'tokenization', ['ajax' => true], true),
+            'iris_title' => $iris_title,
+            'iris_description' => trim($iris_description),
+            'iris_logo_url' => $this->_path . 'views/images/logo_iris.jpg',
         ]);
 
         /**
          *  Load form template to be displayed in the checkout step
          */
-        $paymentForm = $this->fetch('module:cardlink_checkout/views/templates/hook/payment_options.tpl');
+        $paymentForm = $this->fetch('module:cardlink_checkout/views/templates/hook/card_payment_options.tpl');
 
         /**
          * Create a PaymentOption object containing the necessary data
          * to display this module in the checkout
          */
-        $paymentOption = new PrestaShop\PrestaShop\Core\Payment\PaymentOption;
-        $paymentOption->setModuleName(Cardlink_Checkout\Constants::MODULE_NAME)
+        $cardPaymentOption = new PrestaShop\PrestaShop\Core\Payment\PaymentOption;
+        $cardPaymentOption->setModuleName(Cardlink_Checkout\Constants::MODULE_NAME)
             ->setCallToActionText($title)
             ->setForm($paymentForm)
             //->setLogo(Media::getMediaPath(_PS_MODULE_DIR_ . $this->name . '/views/images/cardlink.svg'))
         ;
 
-        return [$paymentOption];
+        $paymentMethodOptions = [$cardPaymentOption];
+
+        $enableIrisPayments = Cardlink_Checkout\Constants::ENABLE_IRIS_PAYMENTS && boolval(Configuration::get(Cardlink_Checkout\Constants::CONFIG_ENABLE_IRIS, $idLang, $idShopGroup, $idShop, '0'));
+        $diasCode = trim(Configuration::get(Cardlink_Checkout\Constants::CONFIG_DIAS_CODE, $idLang, $idShopGroup, $idShop, ''));
+
+        if ($enableIrisPayments && $diasCode != '') {
+            /**
+             *  Load form template to be displayed in the checkout step
+             */
+            $irisPaymentForm = $this->fetch('module:cardlink_checkout/views/templates/hook/iris_payment_options.tpl');
+
+            $irisPaymentOption = new PrestaShop\PrestaShop\Core\Payment\PaymentOption;
+            $irisPaymentOption->setModuleName(Cardlink_Checkout\Constants::MODULE_NAME)
+                ->setCallToActionText($iris_title)
+                ->setForm($irisPaymentForm)
+                //->setLogo(Media::getMediaPath(_PS_MODULE_DIR_ . $this->name . '/views/images/iris.svg'))
+            ;
+
+            $paymentMethodOptions[] = $irisPaymentOption;
+        }
+
+        return $paymentMethodOptions;
     }
 
     /**
@@ -798,8 +904,7 @@ class Cardlink_Checkout extends PaymentModule
         $total_reduction_value_ti,
         $total_reduction_value_tex,
         $id_order_state
-    )
-    {
+    ) {
         return parent::createOrderCartRules(
             $order,
             $cart,

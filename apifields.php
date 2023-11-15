@@ -64,6 +64,23 @@ class ApiFields
     const TransactionId = 'txId';
     const RiskScore = 'riskScore';
     const Status = 'status';
+    const XlsBonusAdjAmount = 'xlsbonusadjamt';
+    const XlsBonusTxId = 'xlsbonustxid';
+    const XlsBonusStatus = 'xlsbonusstatus';
+    const XlsBonusDetails = 'xlsbonusdetails';
+    const XlsBonusAwards = 'xlsbonusawards';
+    const XlsBonusDigest = 'xlsbonusdigest';
+
+    /**
+     * Order of API fields for calculation of the digest field in a Alpha Bonus transaction response message.
+     */
+    const TRANSACTION_RESPONSE_XLSBONUS_DIGEST_CALCULATION_FIELD_ORDER = [
+        self::XlsBonusAdjAmount,
+        self::XlsBonusTxId,
+        self::XlsBonusStatus,
+        self::XlsBonusDetails,
+        self::XlsBonusAwards
+    ];
 
     /**
      * Order of API fields for calculation of the digest field in a transaction request message.

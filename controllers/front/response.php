@@ -77,25 +77,36 @@ class Cardlink_CheckoutResponseModuleFrontController extends ModuleFrontControll
             $responseData[Cardlink_Checkout\ApiFields::Status] === Cardlink_Checkout\Constants::TRANSACTION_STATUS_AUTHORIZED
             || $responseData[Cardlink_Checkout\ApiFields::Status] === Cardlink_Checkout\Constants::TRANSACTION_STATUS_CAPTURED
         ) {
-            // Set order as paid.
-            $this->errors = Cardlink_Checkout\PaymentHelper::markSuccessfulPayment($this->module, $order_details, $responseData);
-            $this->sendOrderConfirmationEmail($order_details);
+            $isValidXlsBonusPaymentGatewayResponse = true;
 
-            try {
-                if (array_key_exists(Cardlink_Checkout\ApiFields::ExtToken, $responseData)) {
-                    $stored_token = new Cardlink_Checkout\StoredToken();
-                    $stored_token->active = true;
-                    $stored_token->id_customer = $order_details->id_customer;
-                    $stored_token->token = $responseData[Cardlink_Checkout\ApiFields::ExtToken];
-                    $stored_token->type = $responseData[Cardlink_Checkout\ApiFields::PaymentMethod];
-                    $stored_token->last_4digits = $responseData[Cardlink_Checkout\ApiFields::ExtTokenPanEnd];
-                    $stored_token->expiration = $responseData[Cardlink_Checkout\ApiFields::ExtTokenExpiration];
-                    $stored_token->save();
-                }
-            } catch (\Exception $e) {
+            if (array_key_exists(Cardlink_Checkout\ApiFields::XlsBonusDigest, $responseData)) {
+                $isValidXlsBonusPaymentGatewayResponse = Cardlink_Checkout\PaymentHelper::validateXlsBonusResponseData(
+                    $responseData,
+                    Configuration::get(Cardlink_Checkout\Constants::CONFIG_SHARED_SECRET, null, null, null, '')
+                );
             }
 
-            $success = true;
+            if ($isValidXlsBonusPaymentGatewayResponse == true) {
+                // Set order as paid.
+                $this->errors = Cardlink_Checkout\PaymentHelper::markSuccessfulPayment($this->module, $order_details, $responseData);
+                $this->sendOrderConfirmationEmail($order_details);
+
+                try {
+                    if (array_key_exists(Cardlink_Checkout\ApiFields::ExtToken, $responseData)) {
+                        $stored_token = new Cardlink_Checkout\StoredToken();
+                        $stored_token->active = true;
+                        $stored_token->id_customer = $order_details->id_customer;
+                        $stored_token->token = $responseData[Cardlink_Checkout\ApiFields::ExtToken];
+                        $stored_token->type = $responseData[Cardlink_Checkout\ApiFields::PaymentMethod];
+                        $stored_token->last_4digits = $responseData[Cardlink_Checkout\ApiFields::ExtTokenPanEnd];
+                        $stored_token->expiration = $responseData[Cardlink_Checkout\ApiFields::ExtTokenExpiration];
+                        $stored_token->save();
+                    }
+                } catch (\Exception $e) {
+                }
+
+                $success = true;
+            }
         } else if (
             $responseData[Cardlink_Checkout\ApiFields::Status] === Cardlink_Checkout\Constants::TRANSACTION_STATUS_CANCELED
             || $responseData[Cardlink_Checkout\ApiFields::Status] === Cardlink_Checkout\Constants::TRANSACTION_STATUS_REFUSED

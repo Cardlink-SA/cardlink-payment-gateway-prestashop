@@ -87,6 +87,7 @@ class Cardlink_CheckoutValidationModuleFrontController extends ModuleFrontContro
             $customer->secure_key
         );
 
+        $payment_method = Tools::getValue('payment_method', 'card');
         $installments = (int) Tools::getValue('installments', '0');
         $stored_token = Tools::getValue('stored_token', '0');
         $tokenize_card = boolval(Tools::getValue('tokenize_card', '0'));
@@ -97,6 +98,7 @@ class Cardlink_CheckoutValidationModuleFrontController extends ModuleFrontContro
             'id_module' => (int) $this->module->id,
             'id_order' => $this->module->currentOrder,
             'key' => $customer->secure_key,
+            'payment_method' => $payment_method,
             'installments' => min($installments, $max_installments),
             'stored_token' => $stored_token,
             'tokenize_card' => $tokenize_card

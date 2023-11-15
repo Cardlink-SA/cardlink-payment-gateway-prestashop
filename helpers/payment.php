@@ -157,7 +157,7 @@ class PaymentHelper
      * @param int|string $orderId The entity ID of the order.
      * @return array An associative array containing the data that will be sent to the payment gateway's API endpoint to perform the requested transaction.
      */
-    public static function getFormDataForOrder($customer, $order_details, $installments, $stored_token, $tokenize_card)
+    public static function getFormDataForOrder($payment_method, $customer, $order_details, $installments, $stored_token, $tokenize_card)
     {
         $id_order = intval($order_details->id);
         $billing_details = new Address(intval($order_details->id_address_invoice));
@@ -172,6 +172,8 @@ class PaymentHelper
         $merchantId = Configuration::get(Constants::CONFIG_MERCHANT_ID);
         $sharedSecret = Configuration::get(Constants::CONFIG_SHARED_SECRET);
 
+        $diasCode = trim(Configuration::get(Constants::CONFIG_DIAS_CODE));
+        $enableIrisPayments = boolval(Configuration::get(Constants::CONFIG_ENABLE_IRIS)) && $diasCode != '';
         $acceptsInstallments = Configuration::get(Constants::CONFIG_ACCEPT_INSTALLMENTS) != Constants::ACCEPT_INSTALLMENTS_NO;
 
         // Version number - must be '2'
@@ -184,9 +186,6 @@ class PaymentHelper
         // The Merchant ID
         $formData[ApiFields::MerchantId] = $merchantId;
 
-        // The type of transaction to perform (Sale/Authorize).
-        $formData[ApiFields::TransactionType] = self::getTransactionTypeValue();
-
         $returnUrl = self::getTransactionReturnUrl($customer, $order_details);
 
         // Transaction success/failure return URLs
@@ -194,10 +193,20 @@ class PaymentHelper
         $formData[ApiFields::CancelUrl] = $returnUrl;
 
         // Order information
-        $formData[ApiFields::OrderDescription] = "ORDER ${id_order}";
         $formData[ApiFields::OrderId] = $id_order;
         $formData[ApiFields::OrderAmount] = floatval($order_details->total_paid); // Get order total amount
         $formData[ApiFields::Currency] = $currency->iso_code; // Get order currency code
+
+        if ($payment_method == 'IRIS' && $enableIrisPayments) {
+            $formData[ApiFields::PaymentMethod] = 'IRIS';
+            $formData[ApiFields::OrderDescription] = self::generateIrisRFCode($diasCode, $formData[ApiFields::OrderId], $formData[ApiFields::OrderAmount]); // The type of transaction to perform (Sale/Authorize).
+            $formData[ApiFields::TransactionType] = '1';
+        } else {
+            $formData[ApiFields::OrderDescription] = 'ORDER ' . $id_order;
+
+            // The type of transaction to perform (Sale/Authorize).
+            $formData[ApiFields::TransactionType] = self::getTransactionTypeValue();
+        }
 
         // Payer/customer information
         $formData[ApiFields::PayerEmail] = $customer->email;
@@ -290,6 +299,46 @@ class PaymentHelper
     }
 
     /**
+     * Generate the Request Fund (RF) code for IRIS payments.
+     * @param string $diasCustomerCode The DIAS customer code of the merchant.
+     * @param mixed $orderId The ID of the order.
+     * @param mixed $amount The amount due.
+     * @return string The generated RF code.
+     */
+    public static function generateIrisRFCode(string $diasCustomerCode, $orderId, $amount)
+    {
+        /* calculate payment check code */
+        $paymentSum = 0;
+
+        if ($amount > 0) {
+            $ordertotal = str_replace([','], '.', (string) $amount);
+            $ordertotal = number_format($ordertotal, 2, '', '');
+            $ordertotal = strrev($ordertotal);
+            $factor = [1, 7, 3];
+            $idx = 0;
+            for ($i = 0; $i < strlen($ordertotal); $i++) {
+                $idx = $idx <= 2 ? $idx : 0;
+                $paymentSum += $ordertotal[$i] * $factor[$idx];
+                $idx++;
+            }
+        }
+
+        $orderIdNum = (int) filter_var($orderId, FILTER_SANITIZE_NUMBER_INT);
+
+        $randomNumber = str_pad($orderIdNum, 13, '0', STR_PAD_LEFT);
+        $paymentCode = $paymentSum ? ($paymentSum % 8) : '8';
+        $systemCode = '12';
+        $tempCode = $diasCustomerCode . $paymentCode . $systemCode . $randomNumber . '271500';
+        $mod97 = bcmod($tempCode, '97');
+
+        $cd = 98 - (int) $mod97;
+        $cd = str_pad((string) $cd, 2, '0', STR_PAD_LEFT);
+        $rf_payment_code = 'RF' . $cd . $diasCustomerCode . $paymentCode . $systemCode . $randomNumber;
+
+        return $rf_payment_code;
+    }
+
+    /**
      * Validate the response data of the payment gateway by recalculating and comparing the data digests in order to identify legitimate incoming request.
      * 
      * @param array $formData The payment gateway response data.
@@ -313,6 +362,33 @@ class PaymentHelper
         $generatedDigest = self::GenerateDigest($concatenatedData);
 
         return $formData[ApiFields::Digest] == $generatedDigest;
+    }
+
+    /**
+     * Validate the response data of the payment gateway for Alpha Bonus transactions 
+     * by recalculating and comparing the data digests in order to identify legitimate incoming request.
+     * 
+     * @param array $formData The payment gateway response data.
+     * @param string $sharedSecret The shared secret code of the merchant.
+     * 
+     * @return bool Identifies that the incoming data were sent by the payment gateway.
+     */
+    public static function validateXlsBonusResponseData($formData, $sharedSecret)
+    {
+        $concatenatedData = '';
+
+        foreach (ApiFields::TRANSACTION_RESPONSE_XLSBONUS_DIGEST_CALCULATION_FIELD_ORDER as $field) {
+            if ($field != ApiFields::XlsBonusDigest) {
+                if (array_key_exists($field, $formData)) {
+                    $concatenatedData .= $formData[$field];
+                }
+            }
+        }
+
+        $concatenatedData .= $sharedSecret;
+        $generatedDigest = self::GenerateDigest($concatenatedData);
+
+        return $formData[ApiFields::XlsBonusDigest] == $generatedDigest;
     }
 
     /**

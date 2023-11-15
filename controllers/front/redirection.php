@@ -31,11 +31,12 @@ class Cardlink_CheckoutRedirectionModuleFrontController extends ModuleFrontContr
         }
 
         $id_order = Tools::getValue('id_order', 0);
+        $payment_method = Tools::getValue('payment_method', 'card');
         $installments = intval(Tools::getValue('installments', 0));
         $stored_token = intval(Tools::getValue('stored_token', 0));
         $tokenize_card = boolval(Tools::getValue('tokenize_card', 0));
 
-        $order_details = new Order((int)($id_order));
+        $order_details = new Order((int) ($id_order));
 
         /**
          * Check if the requested order is linked to the customer
@@ -48,6 +49,7 @@ class Cardlink_CheckoutRedirectionModuleFrontController extends ModuleFrontContr
          * Redirect the customer to the order confirmation page
          */
         $redirectionFormData = Cardlink_Checkout\PaymentHelper::getFormDataForOrder(
+            $payment_method,
             $customer,
             $order_details,
             $installments,
@@ -58,7 +60,7 @@ class Cardlink_CheckoutRedirectionModuleFrontController extends ModuleFrontContr
         $this->context->smarty->assign([
             'action' => Cardlink_Checkout\PaymentHelper::getPaymentGatewayDataPostUrl(),
             'form_data' => $redirectionFormData,
-            'css_url' =>  $this->module->getPathUri() . 'views/css/front-custom.css',
+            'css_url' => $this->module->getPathUri() . 'views/css/front-custom.css',
             'use_iframe' => boolval(Configuration::get(Cardlink_Checkout\Constants::CONFIG_USE_IFRAME, '0'))
         ]);
 
