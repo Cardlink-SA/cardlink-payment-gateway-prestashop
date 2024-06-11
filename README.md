@@ -54,7 +54,7 @@ Once you have completed the requested tests and any changes to your website, you
 
 ## Installation
 
-Download the archive at GITHUB_PAGES_URL.
+Download the archive at [DOWNLOAD CARDLINK PRESTASHOP](https://cardlink-sa.github.io/cardlink-payment-gateway-prestashop/cardlink_checkout.zip).
 
 From your administration, go to ``Modules > Module Manager`` and click on the ``Upload a module`` button. A popup will appear.
 
