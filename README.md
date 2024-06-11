@@ -27,7 +27,7 @@
   - Added settings for order states after successful capture/authorize payments.
   - Added cron job script and HTTP endpoint for canceling orders that have been abandoned (left in waiting for payment for more than 1 hour).
 - **1.0.0**
-  - Initial release
+  - Initial release.
 
 ## Description
 
