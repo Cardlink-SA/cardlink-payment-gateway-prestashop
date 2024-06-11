@@ -19,7 +19,7 @@ use OrderHistory;
 use State;
 use Validate;
 
-require_once(dirname(__FILE__) . '/../apifields.php');
+require_once (dirname(__FILE__) . '/../apifields.php');
 
 /**
  * Helper class containing methods to handle payment related functionalities.
@@ -501,5 +501,34 @@ class PaymentHelper
         }
 
         return $errors;
+    }
+
+    public static function getPendingPaymentOrderStates()
+    {
+        $ret = [];
+
+        $orderStates = [
+            \Configuration::get('CARDLINK_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT'),
+            \Configuration::get('PS_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT')
+        ];
+
+        foreach ($orderStates as $val) {
+            if ($val !== false) {
+                $ret[] = $val;
+            }
+        }
+
+        if (count($ret) == 0) {
+            $stateManager = new \OrderState(); //the id is possibly not required, did not try without
+            $states = $stateManager->getOrderStates(1);
+
+            foreach ($states as $state) {
+                if ($state['module_name'] == Cardlink_Checkout\Constants::MODULE_NAME) {
+                    $ret[] = $state['id_order_state'];
+                }
+            }
+        }
+
+        return $ret;
     }
 }

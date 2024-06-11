@@ -12,11 +12,11 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-require_once(dirname(__FILE__) . '/constants.php');
-require_once(dirname(__FILE__) . '/apifields.php');
-require_once(dirname(__FILE__) . '/helpers/payment.php');
-require_once(dirname(__FILE__) . '/models/Installments.php');
-require_once(dirname(__FILE__) . '/models/StoredToken.php');
+require_once (dirname(__FILE__) . '/constants.php');
+require_once (dirname(__FILE__) . '/apifields.php');
+require_once (dirname(__FILE__) . '/helpers/payment.php');
+require_once (dirname(__FILE__) . '/models/Installments.php');
+require_once (dirname(__FILE__) . '/models/StoredToken.php');
 
 
 class Cardlink_Checkout extends PaymentModule
@@ -30,7 +30,7 @@ class Cardlink_Checkout extends PaymentModule
     {
         $this->name = Cardlink_Checkout\Constants::MODULE_NAME;
         $this->tab = 'payments_gateways';
-        $this->version = '1.0.9';
+        $this->version = '1.0.10';
         $this->author = 'Cardlink S.A.';
         $this->controllers = array('payment', 'validation');
         $this->currencies = true;
@@ -118,13 +118,13 @@ class Cardlink_Checkout extends PaymentModule
         if ($params['template'] === 'order_conf') {
             $order_id = (int) $params['templateVars']['{id_order}'];
 
+            $pendingPaymentOrderStates = Cardlink_Checkout\PaymentHelper::getPendingPaymentOrderStates(Cardlink_Checkout\Constants::MODULE_NAME);
             $order_details = new Order($order_id);
 
             if (
                 Validate::isLoadedObject($order_details)
                 && $order_details->module == Cardlink_Checkout\Constants::MODULE_NAME
-                && ($order_details->current_state == Configuration::get('PS_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT')
-                    || $order_details->current_state == Configuration::get('CARDLINK_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT'))
+                && in_array($order_details->current_state, $pendingPaymentOrderStates)
             ) {
                 return false;
             }
@@ -158,7 +158,7 @@ class Cardlink_Checkout extends PaymentModule
                 $destination = dirname(__FILE__) . '/../../img/os/' . (int) $order_state->id . '.gif';
                 copy($source, $destination);
 
-                Configuration::updateValue('CARDLINK_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT', $order_state->id);
+                Configuration::updateGlobalValue('CARDLINK_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT', $order_state->id);
             }
         }
 

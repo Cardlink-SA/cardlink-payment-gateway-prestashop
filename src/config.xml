@@ -2,7 +2,7 @@
 <module>
     <name>cardlink_checkout</name>
     <displayName><![CDATA[Cardlink Checkout]]></displayName>
-    <version><![CDATA[1.0.7]]></version>
+    <version><![CDATA[1.0.10]]></version>
     <description><![CDATA[Cardlink Payment Gateway (Redirect Mode)]]></description>
     <author><![CDATA[Cardlink S.A.]]></author>
     <tab><![CDATA[payments_gateways]]></tab>

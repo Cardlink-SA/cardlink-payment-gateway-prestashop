@@ -61,14 +61,10 @@ class Cardlink_CheckoutValidationModuleFrontController extends ModuleFrontContro
          * Place the order
          */
 
-        $orderStates = [
-            Configuration::get('CARDLINK_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT'),
-            Configuration::get('PS_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT')
-        ];
-
         $orderState = 0;
+        $pendingPaymentOrderStates = Cardlink_Checkout\PaymentHelper::getPendingPaymentOrderStates();
 
-        foreach ($orderStates as $val) {
+        foreach ($pendingPaymentOrderStates as $val) {
             if ($val !== false) {
                 $orderState = $val;
                 break;

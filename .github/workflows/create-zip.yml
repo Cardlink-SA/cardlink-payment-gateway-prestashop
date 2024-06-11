@@ -1,0 +1,31 @@
+name: Build and Deploy ZIP
+
+on:
+  push:
+    branches:
+      - main  # Change to your target branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Create custom ZIP file
+      run: |
+        mkdir public
+        mv src cardlink_checkout
+        
+        # Create the ZIP file        
+        zip -r cardlink_checkout.zip cardlink_checkout        
+
+        # Move the ZIP file to a location for deployment
+        mv cardlink_checkout.zip public/
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./public

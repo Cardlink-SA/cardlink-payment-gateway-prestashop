@@ -54,6 +54,8 @@ Once you have completed the requested tests and any changes to your website, you
 
 ## Installation
 
+Download the archive at GITHUB_PAGES_URL.
+
 From your administration, go to ``Modules > Module Manager`` and click on the ``Upload a module`` button. A popup will appear.
 
 ![image001](https://developer.cardlink.gr/downloads/cardlink-payment-gateway-prestashop-assets/image001.png)
