@@ -27,7 +27,7 @@
   - Added settings for order states after successful capture/authorize payments.
   - Added cron job script and HTTP endpoint for canceling orders that have been abandoned (left in waiting for payment for more than 1 hour).
 - **1.0.0**
-  - Initial release.
+  - Initial release
 
 ## Description
 
@@ -54,7 +54,7 @@ Once you have completed the requested tests and any changes to your website, you
 
 ## Installation
 
-Download the archive at [DOWNLOAD CARDLINK PRESTASHOP](https://cardlink-sa.github.io/cardlink-payment-gateway-prestashop/cardlink_checkout.zip).
+Download the archive at the [Releases page](https://github.com/Cardlink-SA/cardlink-payment-gateway-prestashop/releases).
 
 From your administration, go to ``Modules > Module Manager`` and click on the ``Upload a module`` button. A popup will appear.
 

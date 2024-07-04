@@ -43,11 +43,8 @@ class PaymentHelper
      *
      * @return string The URL of the payment gateway.
      */
-    public static function getPaymentGatewayDataPostUrl()
+    public static function getPaymentGatewayDataPostUrl($businessPartner, $transactionEnvironment)
     {
-        $businessPartner = Configuration::get(Constants::CONFIG_BUSINESS_PARTNER, null, null, null, Constants::BUSINESS_PARTNER_CARDLINK);
-        $transactionEnvironment = Configuration::get(Constants::CONFIG_TRANSACTION_ENVIRONMENT, null, null, null, Constants::TRANSACTION_ENVIRONMENT_PRODUCTION);
-
         if ($transactionEnvironment == Constants::TRANSACTION_ENVIRONMENT_PRODUCTION) {
             switch ($businessPartner) {
                 case Constants::BUSINESS_PARTNER_CARDLINK:
@@ -169,11 +166,16 @@ class PaymentHelper
         $shipping_state = new State(intval($shipping_details->id_state));
         $currency = new Currency(intval($order_details->id_currency), null, intval($order_details->id_shop));
 
-        $merchantId = Configuration::get(Constants::CONFIG_MERCHANT_ID);
-        $sharedSecret = Configuration::get(Constants::CONFIG_SHARED_SECRET);
+        if ($payment_method == 'IRIS' && $enableIrisPayments) {
+            $merchantId = Configuration::get(Constants::CONFIG_IRIS_MERCHANT_ID);
+            $sharedSecret = Configuration::get(Constants::CONFIG_IRIS_SHARED_SECRET);
+        } else {
+            $merchantId = Configuration::get(Constants::CONFIG_MERCHANT_ID);
+            $sharedSecret = Configuration::get(Constants::CONFIG_SHARED_SECRET);
+        }
 
-        $diasCode = trim(Configuration::get(Constants::CONFIG_DIAS_CODE));
-        $enableIrisPayments = boolval(Configuration::get(Constants::CONFIG_ENABLE_IRIS)) && $diasCode != '';
+        $sellerId = trim(Configuration::get(Constants::CONFIG_IRIS_SELLER_ID));
+        $enableIrisPayments = boolval(Configuration::get(Constants::CONFIG_IRIS_ENABLE)) && $sellerId != '';
         $acceptsInstallments = Configuration::get(Constants::CONFIG_ACCEPT_INSTALLMENTS) != Constants::ACCEPT_INSTALLMENTS_NO;
 
         // Version number - must be '2'
@@ -199,7 +201,7 @@ class PaymentHelper
 
         if ($payment_method == 'IRIS' && $enableIrisPayments) {
             $formData[ApiFields::PaymentMethod] = 'IRIS';
-            $formData[ApiFields::OrderDescription] = self::generateIrisRFCode($diasCode, $formData[ApiFields::OrderId], $formData[ApiFields::OrderAmount]); // The type of transaction to perform (Sale/Authorize).
+            $formData[ApiFields::OrderDescription] = self::generateIrisRFCode($sellerId, $formData[ApiFields::OrderId], $formData[ApiFields::OrderAmount]); // The type of transaction to perform (Sale/Authorize).
             $formData[ApiFields::TransactionType] = '1';
         } else {
             $formData[ApiFields::OrderDescription] = 'ORDER ' . $id_order;
@@ -231,7 +233,13 @@ class PaymentHelper
         $formData[ApiFields::ShipAddress] = $shipping_details->address1;
 
         // The optional URL of a CSS file to be included in the pages of the payment gateway for custom formatting.
-        $cssUrl = trim(Configuration::get(Constants::CONFIG_CSS_URL));
+
+        if ($payment_method == 'IRIS' && $enableIrisPayments) {
+            $cssUrl = trim(Configuration::get(Constants::CONFIG_IRIS_CSS_URL));
+        } else {
+            $cssUrl = trim(Configuration::get(Constants::CONFIG_CSS_URL));
+        }
+
         if ($cssUrl != '' && substr($cssUrl, 0, strlen('https://')) == 'https://') {
             $formData[ApiFields::CssUrl] = $cssUrl;
         }
@@ -241,23 +249,26 @@ class PaymentHelper
             $iso_code = Language::getIsoById(intval($order_details->id_lang));
             $formData[ApiFields::Language] = explode('_', $iso_code)[0];
         }
-        // Installments information.
-        if ($acceptsInstallments && $installments > 1) {
-            $formData[ApiFields::ExtInstallmentoffset] = 0;
-            $formData[ApiFields::ExtInstallmentperiod] = $installments;
-        }
 
-        // Tokenization
-        if (boolval(Configuration::get(Constants::CONFIG_ALLOW_TOKENIZATION, '0'))) {
-            if ($stored_token > 0) {
-                $storedToken = new Cardlink_Checkout\StoredToken($stored_token);
+        if ($payment_method != 'IRIS') {
+            // Installments information.
+            if ($acceptsInstallments && $installments > 1) {
+                $formData[ApiFields::ExtInstallmentoffset] = 0;
+                $formData[ApiFields::ExtInstallmentperiod] = $installments;
+            }
 
-                if ($storedToken != null && $storedToken->isValid() && $storedToken->id_customer == $customer->id) {
+            // Tokenization
+            if (boolval(Configuration::get(Constants::CONFIG_ALLOW_TOKENIZATION, '0'))) {
+                if ($stored_token > 0) {
+                    $storedToken = new Cardlink_Checkout\StoredToken($stored_token);
+
+                    if ($storedToken != null && $storedToken->isValid() && $storedToken->id_customer == $customer->id) {
+                        $formData[ApiFields::ExtTokenOptions] = 100;
+                        $formData[ApiFields::ExtToken] = $storedToken->token;
+                    }
+                } else if ($tokenize_card) {
                     $formData[ApiFields::ExtTokenOptions] = 100;
-                    $formData[ApiFields::ExtToken] = $storedToken->token;
                 }
-            } else if ($tokenize_card) {
-                $formData[ApiFields::ExtTokenOptions] = 100;
             }
         }
 

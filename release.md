@@ -1,0 +1,3 @@
+- Changed Github Action to automatically build the Prestashop Module archive file on tag assignment.
+- Bug fixes.
+- Validate Alpha Bonus digest.

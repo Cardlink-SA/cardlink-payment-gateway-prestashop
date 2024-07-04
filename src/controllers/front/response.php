@@ -48,18 +48,26 @@ class Cardlink_CheckoutResponseModuleFrontController extends ModuleFrontControll
 
         $responseData = Tools::getAllValues();
 
+        $id_order = intval($responseData[Cardlink_Checkout\ApiFields::OrderId]);
+        $order_details = new Order($id_order);
+
+        $payMethod = $responseData['payMethod'];
+
+        if ($payMethod == 'IRIS') {
+            $sharedSecret = Configuration::get(Cardlink_Checkout\Constants::CONFIG_IRIS_SHARED_SECRET, null, null, null, '');
+        } else {
+            $sharedSecret = Configuration::get(Cardlink_Checkout\Constants::CONFIG_SHARED_SECRET, null, null, null, '');
+        }
+
         // Verify that the response is coming from the payment gateway.
         $isValidPaymentGatewayResponse = Cardlink_Checkout\PaymentHelper::validateResponseData(
             $responseData,
-            Configuration::get(Cardlink_Checkout\Constants::CONFIG_SHARED_SECRET, null, null, null, '')
+            $sharedSecret
         );
 
         if (!$isValidPaymentGatewayResponse) {
             Tools::redirect(self::ERROR_REDIRECT_URI);
         }
-
-        $id_order = intval($responseData[Cardlink_Checkout\ApiFields::OrderId]);
-        $order_details = new Order($id_order);
 
         $order_cart_id = Cart::getCartIdByOrderId($id_order);
 
@@ -82,7 +90,7 @@ class Cardlink_CheckoutResponseModuleFrontController extends ModuleFrontControll
             if (array_key_exists(Cardlink_Checkout\ApiFields::XlsBonusDigest, $responseData)) {
                 $isValidXlsBonusPaymentGatewayResponse = Cardlink_Checkout\PaymentHelper::validateXlsBonusResponseData(
                     $responseData,
-                    Configuration::get(Cardlink_Checkout\Constants::CONFIG_SHARED_SECRET, null, null, null, '')
+                    $sharedSecret
                 );
             }
 
