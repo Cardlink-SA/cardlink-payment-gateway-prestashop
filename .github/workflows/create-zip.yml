@@ -2,8 +2,8 @@ name: Build and Deploy ZIP
 
 on:
   push:
-    branches:
-      - main  # Change to your target branch
+    tags:
+      - 'v*' # Trigger the workflow only on tag pushes
 
 jobs:
   build:
@@ -12,6 +12,10 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
+    
+    - name: Extract tag name
+      id: get_tag
+      run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
     - name: Create custom ZIP file
       run: |
@@ -19,11 +23,34 @@ jobs:
         mv src cardlink_checkout
         
         # Create the ZIP file        
-        zip -r cardlink_checkout.zip cardlink_checkout        
+        zip -r prestashop-cardlink-checkout-${TAG_NAME}.zip cardlink_checkout        
 
         # Move the ZIP file to a location for deployment
-        mv cardlink_checkout.zip public/
+        mv prestashop-cardlink-checkout-${TAG_NAME}.zip public/
 
+    # This step reads a file from repo and use it for body of the release
+    # This works on any self-hosted runner OS
+    - name: Read release.md and use it as a body of new release
+      id: read_release
+      shell: bash
+      run: |
+        r=$(cat release.md)                       # <--- Read release.md (Provide correct path as per your repo)
+        r="${r//'%'/'%25'}"                               # Multiline escape sequences for %
+        r="${r//$'\n'/'%0A'}"                             # Multiline escape sequences for '\n'
+        r="${r//$'\r'/'%0D'}"                             # Multiline escape sequences for '\r'
+        echo "RELEASE_BODY=$r" >> $GITHUB_OUTPUT          # <--- Set environment variable
+
+    - name: Upload binaries to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: public/prestashop-cardlink-checkout-${{ env.TAG_NAME }}.zip
+        asset_name:
+        tag: ${{ github.ref }}
+        overwrite: true
+        body: |
+          ${{ steps.read_release.outputs.RELEASE_BODY }}
+    
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
