@@ -10,24 +10,26 @@
 
 ## Changelog
 
-- **1.0.7**
-  - Bug fixes.
-  - Validate Alpha Bonus digest.
-- **1.0.6**
-  - Removed billing state from data sent to the payment gateway.
-- **1.0.5**
-  - Fixed data-module-name value in checkout.
-- **1.0.4**
-  - Added payment success/denied/canceled/error pages.
-- **1.0.3**
-  - Added support for Prestashop version 8.0.x, added missing order state, fixed minor bugs.
-- **1.0.2**
-  - Added hook to disable sending order confirmation email to customer for the waiting payment state.
+- **1.0.0**
+  - Initial release
 - **1.0.1**
   - Added settings for order states after successful capture/authorize payments.
   - Added cron job script and HTTP endpoint for canceling orders that have been abandoned (left in waiting for payment for more than 1 hour).
-- **1.0.0**
-  - Initial release
+- **1.0.2**
+  - Added hook to disable sending order confirmation email to customer for the waiting payment state.
+- **1.0.3**
+  - Added support for Prestashop version 8.0.x, added missing order state, fixed minor bugs.
+- **1.0.4**
+  - Added payment success/denied/canceled/error pages.
+- **1.0.5**
+  - Fixed data-module-name value in checkout.
+- **1.0.6**
+  - Removed billing state from data sent to the payment gateway.
+- **1.0.7**
+  - Bug fixes.
+  - Validate Alpha Bonus digest.
+- **1.0.8**
+  -	Bug fixes in checkout response controller.
 
 ## Description
 

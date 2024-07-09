@@ -9,7 +9,7 @@ class Constants
     public const TABLE_NAME_INSTALLMENTS = 'cardlink_checkout_installments';
     public const TABLE_NAME_STORED_TOKENS = 'cardlink_checkout_stored_tokens';
 
-    public const ENABLE_IRIS_PAYMENTS = true;
+    public const ENABLE_IRIS_PAYMENTS = false;
 
     public const CONFIG_TITLE = 'CARDLINK_CHECKOUT_CONFIG_TITLE';
     public const CONFIG_DESCRIPTION = 'CARDLINK_CHECKOUT_CONFIG_DESCRIPTION';

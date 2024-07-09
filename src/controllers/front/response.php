@@ -255,6 +255,8 @@ class Cardlink_CheckoutResponseModuleFrontController extends ModuleFrontControll
         $id_order_state = (int) $order->current_state;
         $order_status = new OrderState($id_order_state, (int) $this->context->language->id);
 
+        $currentLocale = $this->context->currentLocale;
+
         // Construct order detail table for the email
         $virtual_product = true;
 
@@ -263,21 +265,21 @@ class Cardlink_CheckoutResponseModuleFrontController extends ModuleFrontControll
             $price = Product::getPriceStatic((int) $product['id_product'], false, ($product['id_product_attribute'] ? (int) $product['id_product_attribute'] : null), 6, null, false, true, $product['cart_quantity'], false, (int) $order->id_customer, (int) $order->id_cart, (int) $order->{Configuration::get('PS_TAX_ADDRESS_TYPE')}, $specific_price, true, true, null, true, $product['id_customization']);
             $price_wt = Product::getPriceStatic((int) $product['id_product'], true, ($product['id_product_attribute'] ? (int) $product['id_product_attribute'] : null), 2, null, false, true, $product['cart_quantity'], false, (int) $order->id_customer, (int) $order->id_cart, (int) $order->{Configuration::get('PS_TAX_ADDRESS_TYPE')}, $specific_price, true, true, null, true, $product['id_customization']);
 
-            $product_price = Product::getTaxCalculationMethod() == PS_TAX_EXC ? Tools::ps_round($price, Context::getContext()->getComputingPrecision()) : $price_wt;
+            $product_price = Product::getTaxCalculationMethod() == PS_TAX_EXC ? Tools::ps_round($price, $this->context->getComputingPrecision()) : $price_wt;
 
             $product_var_tpl = [
                 'id_product' => $product['id_product'],
                 'id_product_attribute' => $product['id_product_attribute'],
                 'reference' => $product['reference'],
                 'name' => $product['product_name'] . (isset($product['attributes']) ? ' - ' . $product['attributes'] : ''),
-                'price' => Tools::getContextLocale($this->context)->formatPrice($product_price * $product['product_quantity'], $this->context->currency->iso_code),
+                'price' => $currentLocale->formatPrice($product_price * $product['product_quantity'], $this->context->currency->iso_code),
                 'quantity' => $product['product_quantity'],
                 'customization' => [],
             ];
 
             if (isset($product['price']) && $product['price']) {
-                $product_var_tpl['unit_price'] = Tools::getContextLocale($this->context)->formatPrice($product_price, $this->context->currency->iso_code);
-                $product_var_tpl['unit_price_full'] = Tools::getContextLocale($this->context)->formatPrice($product_price, $this->context->currency->iso_code)
+                $product_var_tpl['unit_price'] = $currentLocale->formatPrice($product_price, $this->context->currency->iso_code);
+                $product_var_tpl['unit_price_full'] = $currentLocale->formatPrice($product_price, $this->context->currency->iso_code)
                     . ' ' . $product['unity'];
             } else {
                 $product_var_tpl['unit_price'] = $product_var_tpl['unit_price_full'] = '';
@@ -303,7 +305,7 @@ class Cardlink_CheckoutResponseModuleFrontController extends ModuleFrontControll
                     $product_var_tpl['customization'][] = [
                         'customization_text' => $customization_text,
                         'customization_quantity' => $customization_quantity,
-                        'quantity' => Tools::getContextLocale($this->context)->formatPrice($customization_quantity * $product_price, $this->context->currency->iso_code),
+                        'quantity' => $currentLocale->formatPrice($customization_quantity * $product_price, $this->context->currency->iso_code),
                     ];
                 }
             }
@@ -405,14 +407,14 @@ class Cardlink_CheckoutResponseModuleFrontController extends ModuleFrontControll
             '{products_txt}' => $product_list_txt,
             '{discounts}' => $cart_rules_list_html,
             '{discounts_txt}' => $cart_rules_list_txt,
-            '{total_paid}' => Tools::getContextLocale($this->context)->formatPrice($order->total_paid, $this->context->currency->iso_code),
-            '{total_products}' => Tools::getContextLocale($this->context)->formatPrice(Product::getTaxCalculationMethod() == PS_TAX_EXC ? $order->total_products : $order->total_products_wt, $this->context->currency->iso_code),
-            '{total_discounts}' => Tools::getContextLocale($this->context)->formatPrice($order->total_discounts, $this->context->currency->iso_code),
-            '{total_shipping}' => Tools::getContextLocale($this->context)->formatPrice($order->total_shipping, $this->context->currency->iso_code),
-            '{total_shipping_tax_excl}' => Tools::getContextLocale($this->context)->formatPrice($order->total_shipping_tax_excl, $this->context->currency->iso_code),
-            '{total_shipping_tax_incl}' => Tools::getContextLocale($this->context)->formatPrice($order->total_shipping_tax_incl, $this->context->currency->iso_code),
-            '{total_wrapping}' => Tools::getContextLocale($this->context)->formatPrice($order->total_wrapping, $this->context->currency->iso_code),
-            '{total_tax_paid}' => Tools::getContextLocale($this->context)->formatPrice(($order->total_paid_tax_incl - $order->total_paid_tax_excl), $this->context->currency->iso_code),
+            '{total_paid}' => $currentLocale->formatPrice($order->total_paid, $this->context->currency->iso_code),
+            '{total_products}' => $currentLocale->formatPrice(Product::getTaxCalculationMethod() == PS_TAX_EXC ? $order->total_products : $order->total_products_wt, $this->context->currency->iso_code),
+            '{total_discounts}' => $currentLocale->formatPrice($order->total_discounts, $this->context->currency->iso_code),
+            '{total_shipping}' => $currentLocale->formatPrice($order->total_shipping, $this->context->currency->iso_code),
+            '{total_shipping_tax_excl}' => $currentLocale->formatPrice($order->total_shipping_tax_excl, $this->context->currency->iso_code),
+            '{total_shipping_tax_incl}' => $currentLocale->formatPrice($order->total_shipping_tax_incl, $this->context->currency->iso_code),
+            '{total_wrapping}' => $currentLocale->formatPrice($order->total_wrapping, $this->context->currency->iso_code),
+            '{total_tax_paid}' => $currentLocale->formatPrice(($order->total_paid_tax_incl - $order->total_paid_tax_excl), $this->context->currency->iso_code),
         ];
 
         return $data;
