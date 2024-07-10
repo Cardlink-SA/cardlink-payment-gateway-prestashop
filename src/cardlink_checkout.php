@@ -30,7 +30,7 @@ class Cardlink_Checkout extends PaymentModule
     {
         $this->name = Cardlink_Checkout\Constants::MODULE_NAME;
         $this->tab = 'payments_gateways';
-        $this->version = '1.0.8';
+        $this->version = '1.0.11';
         $this->author = 'Cardlink S.A.';
         $this->controllers = array('payment', 'validation');
         $this->currencies = true;
@@ -43,6 +43,7 @@ class Cardlink_Checkout extends PaymentModule
         $this->is_eu_compatible = 1;
 
         parent::__construct();
+        $this->createWaitingPaymentOrderStateIfMissing();
     }
 
     /**
@@ -53,13 +54,13 @@ class Cardlink_Checkout extends PaymentModule
     public function install()
     {
         return parent::install()
+            && $this->createWaitingPaymentOrderStateIfMissing()
             && $this->registerHook('paymentOptions')
             && $this->registerHook('paymentReturn')
             && $this->registerHook('backOfficeHeader')
             && $this->registerHook('displayBackOfficeHeader')
             && $this->registerHook('displayHeader')
             && $this->registerHook('actionEmailSendBefore')
-            && $this->createWaitingPaymentOrderStateIfMissing()
             && Db::getInstance()->execute('
             CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . Cardlink_Checkout\Constants::TABLE_NAME_INSTALLMENTS . '` (
                 `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -134,16 +135,16 @@ class Cardlink_Checkout extends PaymentModule
 
     private function createWaitingPaymentOrderStateIfMissing()
     {
-        $defaultPsCheckoutWaitingStateExists = Configuration::get('PS_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT');
-        $cardlinkPsCheckoutWaitingStateExists = Configuration::get('CARDLINK_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT');
+        $cardlinkPsCheckoutWaitingStateValue = Configuration::get('CARDLINK_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT');
 
         // If the state does not exist, we create it.
-        if (!$defaultPsCheckoutWaitingStateExists && !$cardlinkPsCheckoutWaitingStateExists) {
+        if ($cardlinkPsCheckoutWaitingStateValue === false) {
             // create new order state
             $order_state = new OrderState();
             $order_state->color = '#34209E';
             $order_state->unremovable = true;
             $order_state->send_email = false;
+            $order_state->hidden = false;
             $order_state->module_name = $this->name;
             $order_state->template = array();
             $order_state->name = array();

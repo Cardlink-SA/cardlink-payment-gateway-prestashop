@@ -30,6 +30,12 @@
   - Validate Alpha Bonus digest.
 - **1.0.8**
   -	Bug fixes in checkout response controller.
+- **1.0.9**
+  -	Minor bug fixes.
+- **1.0.10**
+  -	Minor bug fixes.
+- **1.0.11**
+  - Enforce creation of pending credit card payment order state.
 
 ## Description
 
