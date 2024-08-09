@@ -35,7 +35,15 @@
 - **1.0.10**
   -	Minor bug fixes.
 - **1.0.11**
-  - Enforce creation of pending credit card payment order state.
+  - Enforced creation of pending credit card payment order state.
+- **1.0.12**
+  - Support backorder related order states for sending order confirmation/notification emails only when payment is successful.
+- **1.0.13**
+  -	Minor bug fixes.
+- **1.0.14**
+  - Changed flow to create orders only after successful payment.
+  - Removed unpaid order cancelation cron job.
+
 
 ## Description
 
@@ -56,8 +64,7 @@ Once you have completed the requested tests and any changes to your website, you
 7. Option for a user tokenization service. The card token will be stored at the merchant’s e-shop database and will be used by customers to auto-complete future payments. 
 8. In-store checkout option: the merchant can configure the payment process to take place inside a pop up with IFRAME to mask the redirection process from the customers.
 9. A text field for providing the absolute or relative (to Cardlink Payment Gateway location on server) URL of custom CSS stylesheet, to apply custom CSS styles in the payment page.
-10. Cron jobs executable either through public URL or PHP script (for use in system cronjobs). Cronjob will automatically cancel an order having been abandoned for more than one hour at the ``waiting for payment`` state. Stock is automatically reverted.
-11. Translation ready for Greek & English languages.
+10. Translation ready for Greek & English languages.
 
 
 ## Installation
@@ -74,7 +81,8 @@ Drag and drop your ``.zip`` file or find it and select it through the ``select f
 
 ## Cookie Security Settings
 
-These settings will manipulate all cookies set by your Prestashop store to allow customer sessions to persist after returning from the payment gateway. If you fail to properly set these, customers returning from the payment gateway will be automatically logged out from their accounts.
+For security reasons, Web browsers will not send target domain cookies when the referrer website is on another domain and data are POSTed unless the SameSite option of these cookies is set to the value None. If you fail to properly configure the required hosting settings, customers returning from the payment gateway will be automatically logged out from their accounts. The following configuration instructions 
+will manipulate all cookies set by your Prestashop store to allow customer sessions to persist after returning from the payment gateway. If you fail to properly set these, customers returning from the payment gateway will be automatically logged out from their accounts.
  
 ### Through the administration panel
 
@@ -83,13 +91,17 @@ This setting is currently available in Prestashop version 1.7.8.7. If this setti
 
 ### Manually
 
-For hosting solutions running the Apache web server software, you will need to add the following lines to your web site’s root .htaccess file. 
+#### Apache Web Server
+
+For hosting solutions running the Apache web server software, you will need to add the following lines to your web site’s root ``.htaccess`` file. Make sure the ``mod_headers`` Apache module is installed and active.
 
 ```
 <IfModule mod_headers.c>
 Header always edit Set-Cookie ^(.*)$ $1;SameSite=None;Secure
 </IfModule>
 ```
+
+#### Nginx Web Server
 
 If your hosting provider uses the Nginx web server instead, you will need to add/edit the following lines of code to your virtual host’s configuration file.
 
@@ -100,7 +112,24 @@ location / {
 }
 ```
 
+#### Plesk Hosting Control Panel
+
+If you are using Plesk and nginx in proxy mode, under ``Apache & nginx Setting for ... > Additional nginx directives`` add only the following line:
+
+```
+proxy_cookie_path / "/; SameSite=None; Secure";
+```
+
+If you are only using Apache, add the following configuration lines in the ``Additional Apache directives`` section on the same page. By default, Plesk has the Apache ``mod_headers`` module installed and active however, verify that this is the case for your Plesk installation.
+
+```
+<IfModule mod_headers.c>
+Header always edit Set-Cookie ^(.*)$ $1;SameSite=None;Secure
+</IfModule>
+```
+
 If you are unsure or unfamiliar with the actions described above, please ask a trained IT person or contact your hosting provider to do them for you.
+
 
 ## Screenshots
 

@@ -8,6 +8,9 @@
  * @author Cardlink S.A. <ecommerce_support@cardlink.gr>
  * @license https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
  */
+
+use Cardlink_Checkout\PaymentHelper;
+
 if (!defined('_PS_VERSION_')) {
     exit;
 }
@@ -30,9 +33,9 @@ class Cardlink_Checkout extends PaymentModule
     {
         $this->name = Cardlink_Checkout\Constants::MODULE_NAME;
         $this->tab = 'payments_gateways';
-        $this->version = '1.0.11';
+        $this->version = '1.0.14';
         $this->author = 'Cardlink S.A.';
-        $this->controllers = array('payment', 'validation');
+        $this->controllers = ['payment', 'validation'];
         $this->currencies = true;
         $this->currencies_mode = 'checkbox';
         $this->bootstrap = true;
@@ -43,7 +46,6 @@ class Cardlink_Checkout extends PaymentModule
         $this->is_eu_compatible = 1;
 
         parent::__construct();
-        $this->createWaitingPaymentOrderStateIfMissing();
     }
 
     /**
@@ -54,13 +56,10 @@ class Cardlink_Checkout extends PaymentModule
     public function install()
     {
         return parent::install()
-            && $this->createWaitingPaymentOrderStateIfMissing()
             && $this->registerHook('paymentOptions')
             && $this->registerHook('paymentReturn')
-            && $this->registerHook('backOfficeHeader')
             && $this->registerHook('displayBackOfficeHeader')
             && $this->registerHook('displayHeader')
-            && $this->registerHook('actionEmailSendBefore')
             && Db::getInstance()->execute('
             CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . Cardlink_Checkout\Constants::TABLE_NAME_INSTALLMENTS . '` (
                 `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -109,61 +108,6 @@ class Cardlink_Checkout extends PaymentModule
     public function hookBackOfficeHeader($params)
     {
         $this->context->controller->addJS($this->_path . 'views/js/admin-custom.js', true);
-    }
-
-    /**
-     * Do not send order confirmation email to customer if status is set to "waiting payment".
-     */
-    public function hookActionEmailSendBefore($params)
-    {
-        if ($params['template'] === 'order_conf') {
-            $order_id = (int) $params['templateVars']['{id_order}'];
-
-            $pendingPaymentOrderStates = Cardlink_Checkout\PaymentHelper::getPendingPaymentOrderStates(Cardlink_Checkout\Constants::MODULE_NAME);
-            $order_details = new Order($order_id);
-
-            if (
-                Validate::isLoadedObject($order_details)
-                && $order_details->module == Cardlink_Checkout\Constants::MODULE_NAME
-                && in_array($order_details->current_state, $pendingPaymentOrderStates)
-            ) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private function createWaitingPaymentOrderStateIfMissing()
-    {
-        $cardlinkPsCheckoutWaitingStateValue = Configuration::get('CARDLINK_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT');
-
-        // If the state does not exist, we create it.
-        if ($cardlinkPsCheckoutWaitingStateValue === false) {
-            // create new order state
-            $order_state = new OrderState();
-            $order_state->color = '#34209E';
-            $order_state->unremovable = true;
-            $order_state->send_email = false;
-            $order_state->hidden = false;
-            $order_state->module_name = $this->name;
-            $order_state->template = array();
-            $order_state->name = array();
-            $languages = Language::getLanguages(false);
-            foreach ($languages as $language) {
-                $order_state->name[$language['id_lang']] = $this->l('Waiting for Credit Card Payment', false, $language['locale']);
-                $order_state->template[$language['id_lang']] = 'payment';
-            }
-            // Update object
-            if ($order_state->add()) {
-                $source = dirname(__FILE__) . '/icons/card-inserting-16.gif';
-                $destination = dirname(__FILE__) . '/../../img/os/' . (int) $order_state->id . '.gif';
-                copy($source, $destination);
-
-                Configuration::updateGlobalValue('CARDLINK_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT', $order_state->id);
-            }
-        }
-
-        return true;
     }
 
     private function getPostedMultilingualValue($baseName)
@@ -278,17 +222,10 @@ class Cardlink_Checkout extends PaymentModule
      */
     public function displayForm()
     {
-        $retCron = '<div class="panel col-lg-12">';
-        $retCron .= '<div class="panel-heading">' . $this->l('Cron Configuration', false, $this->context->language->locale) . '</div>';
-        $retCron .= ' <div style="padding-bottom:20px;">' . $this->l('Execute hourly to automatically cancel abandoned orders.', false, $this->context->language->locale) . '</div>';
-        $retCron .= ' <div><strong>Cron URL:</strong> ' . Context::getContext()->link->getModuleLink(Cardlink_Checkout\Constants::MODULE_NAME, 'cron', array()) . '</div>';
-        $retCron .= ' <div><strong>Cron script:</strong> ' . __DIR__ . DIRECTORY_SEPARATOR . 'cron.php' . '</div>';
-        $retCron .= '</div>';
-
         $retA = $this->renderAdditionalOptionsList();
         $retC = $this->renderConfigurationForm();
 
-        return $retC . $retA . $retCron;
+        return $retC . $retA;
     }
 
     protected function renderConfigurationForm()
@@ -1030,37 +967,4 @@ class Cardlink_Checkout extends PaymentModule
         return $this->fetch('module:cardlink_checkout/views/templates/hook/payment_return.tpl');
     }
 
-    /**
-     * Fetch the content of $template_name inside the folder
-     * current_theme/mails/current_iso_lang/ if found, otherwise in
-     * mails/current_iso_lang.
-     *
-     * @param string $template_name template name with extension
-     * @param int $mail_type Mail::TYPE_HTML or Mail::TYPE_TEXT
-     * @param array $var sent to smarty as 'list'
-     *
-     * @return string
-     */
-    public function getEmailTemplateContent($template_name, $mail_type, $var)
-    {
-        return parent::getEmailTemplateContent($template_name, $mail_type, $var);
-    }
-
-    public function createOrderCartRules(
-        Order $order,
-        Cart $cart,
-        $order_list,
-        $total_reduction_value_ti,
-        $total_reduction_value_tex,
-        $id_order_state
-    ) {
-        return parent::createOrderCartRules(
-            $order,
-            $cart,
-            $order_list,
-            $total_reduction_value_ti,
-            $total_reduction_value_tex,
-            $id_order_state
-        );
-    }
 }

@@ -11,6 +11,7 @@ use Context;
 use Country;
 use Currency;
 use DbQuery;
+use Db;
 use Exception;
 use Language;
 use Module;
@@ -28,15 +29,25 @@ require_once (dirname(__FILE__) . '/../apifields.php');
  */
 class PaymentHelper
 {
-    // /**
-    //  * Gets the URL of the Cardlink payment gateway according to the configured business partner and transaction environment.
-    //  * 
-    //  * @return string
-    //  */
-    // function getPaymentGatewayUrl()
-    // {
-    //     return Mage::getUrl('cardlink_checkout/payment/gateway', array('_secure' => true));
-    // }
+
+    public static function getPaidOrderStatuses()
+    {
+        $db = Db::getInstance();
+        $paidStatuses = [
+            Configuration::get('PS_OS_PAYMENT'), // Payment accepted
+            // Add other status IDs if you have custom statuses indicating payment
+        ];
+
+        $sql = 'SELECT id_order_state FROM ' . _DB_PREFIX_ . 'order_state WHERE paid = 1';
+        $results = $db->executeS($sql);
+
+        foreach ($results as $result) {
+            $paidStatuses[] = $result['id_order_state'];
+        }
+
+        return $paidStatuses;
+    }
+
 
     /**
      * Returns the payment gateway redirection URL the configured Business Partner and the transactions environment.
@@ -119,13 +130,13 @@ class PaymentHelper
      * 
      * @return string The URL of the checkout payment success page.
      */
-    private static function getTransactionReturnUrl($customer, $order_details)
+    private static function getTransactionReturnUrl($customer, $cart)
     {
         $redirectParameters = [
             'key' => $customer->secure_key
         ];
 
-        $id_lang = $order_details->id_lang;
+        $id_lang = $cart->id_lang;
 
         $url = Context::getContext()->link->getModuleLink(Constants::MODULE_NAME, 'response', $redirectParameters, true, $id_lang);
         return $url;
@@ -148,23 +159,16 @@ class PaymentHelper
         }
     }
 
-    /**
-     * Loads the order information for order ID.
-     * 
-     * @param int|string $orderId The entity ID of the order.
-     * @return array An associative array containing the data that will be sent to the payment gateway's API endpoint to perform the requested transaction.
-     */
-    public static function getFormDataForOrder($payment_method, $customer, $order_details, $installments, $stored_token, $tokenize_card)
+    public static function getFormDataForOrder($payment_method, $customer, $cart, $installments, $stored_token, $tokenize_card)
     {
-        $id_order = intval($order_details->id);
-        $billing_details = new Address(intval($order_details->id_address_invoice));
-        $shipping_details = new Address(intval($order_details->id_address_delivery));
+        $billing_details = new Address(intval($cart->id_address_invoice));
+        $shipping_details = new Address(intval($cart->id_address_delivery));
 
         $billing_country = new Country(intval($billing_details->id_country));
         $billing_state = new State(intval($billing_details->id_state));
         $shipping_country = new Country(intval($shipping_details->id_country));
         $shipping_state = new State(intval($shipping_details->id_state));
-        $currency = new Currency(intval($order_details->id_currency), null, intval($order_details->id_shop));
+        $currency = new Currency(intval($cart->id_currency), null, intval($cart->id_shop));
 
         if ($payment_method == 'IRIS' && $enableIrisPayments) {
             $merchantId = Configuration::get(Constants::CONFIG_IRIS_MERCHANT_ID);
@@ -178,6 +182,9 @@ class PaymentHelper
         $enableIrisPayments = boolval(Configuration::get(Constants::CONFIG_IRIS_ENABLE)) && $sellerId != '';
         $acceptsInstallments = Configuration::get(Constants::CONFIG_ACCEPT_INSTALLMENTS) != Constants::ACCEPT_INSTALLMENTS_NO;
 
+        // Get the total amount including taxes, shipping, and discounts
+        $total_amount = $cart->getOrderTotal(true, Cart::BOTH);
+
         // Version number - must be '2'
         $formData[ApiFields::Version] = '2';
         // Device category - always '0'
@@ -188,15 +195,15 @@ class PaymentHelper
         // The Merchant ID
         $formData[ApiFields::MerchantId] = $merchantId;
 
-        $returnUrl = self::getTransactionReturnUrl($customer, $order_details);
+        $returnUrl = self::getTransactionReturnUrl($customer, $cart);
 
         // Transaction success/failure return URLs
         $formData[ApiFields::ConfirmUrl] = $returnUrl;
         $formData[ApiFields::CancelUrl] = $returnUrl;
 
         // Order information
-        $formData[ApiFields::OrderId] = $id_order;
-        $formData[ApiFields::OrderAmount] = floatval($order_details->total_paid); // Get order total amount
+        $formData[ApiFields::OrderId] = $cart->id . 'x' . date("YmdHis");
+        $formData[ApiFields::OrderAmount] = floatval($total_amount); // Get order total amount
         $formData[ApiFields::Currency] = $currency->iso_code; // Get order currency code
 
         if ($payment_method == 'IRIS' && $enableIrisPayments) {
@@ -204,7 +211,7 @@ class PaymentHelper
             $formData[ApiFields::OrderDescription] = self::generateIrisRFCode($sellerId, $formData[ApiFields::OrderId], $formData[ApiFields::OrderAmount]); // The type of transaction to perform (Sale/Authorize).
             $formData[ApiFields::TransactionType] = '1';
         } else {
-            $formData[ApiFields::OrderDescription] = 'ORDER ' . $id_order;
+            $formData[ApiFields::OrderDescription] = 'CART ' . $cart->id;
 
             // The type of transaction to perform (Sale/Authorize).
             $formData[ApiFields::TransactionType] = self::getTransactionTypeValue();
@@ -246,7 +253,7 @@ class PaymentHelper
 
         // Instruct the payment gateway to use the store language for its UI.
         if (boolval(Configuration::get(Constants::CONFIG_FORCE_STORE_LANGUAGE))) {
-            $iso_code = Language::getIsoById(intval($order_details->id_lang));
+            $iso_code = Language::getIsoById(intval($cart->id_lang));
             $formData[ApiFields::Language] = explode('_', $iso_code)[0];
         }
 
@@ -412,134 +419,33 @@ class PaymentHelper
         return base64_encode(hash('sha256', $concatenatedData, true));
     }
 
-    /**
-     * Mark an order as canceled, store additional payment information and restore the user's cart.
-     * 
-     * @param Order The order object.
-     * @param array The data from the payment gateway's response.
-     */
-    public static function markSuccessfulPayment(Module $module, Order $order_details, $responseData)
+    public static function forceSessionCookieSameSiteNone()
     {
-        $errors = [];
+        @session_set_cookie_params(['samesite' => 'None', 'secure' => true]);
+        $sessionStarted = @session_start();
 
-        if (
-            $order_details->current_state == Configuration::get('PS_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT')
-            || $order_details->current_state == Configuration::get('CARDLINK_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT')
-        ) {
-            $order_details->addOrderPayment(
-                $order_details->total_paid,
-                null,
-                $responseData[ApiFields::TransactionId]
-            );
-
-            $history = new OrderHistory();
-            $history->id_order = (int) $order_details->id;
-
-            if ($responseData[ApiFields::Status] === Constants::TRANSACTION_STATUS_AUTHORIZED) {
-                $history->changeIdOrderState(
-                    (int) Configuration::get(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_AUTHORIZED, null, null, null, Configuration::get('PS_CHECKOUT_STATE_AUTHORIZED')),
-                    (int) ($order_details->id),
-                    true
-                );
-            } else if ($responseData[ApiFields::Status] === Constants::TRANSACTION_STATUS_CAPTURED) {
-                $history->changeIdOrderState(
-                    (int) Configuration::get(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_CAPTURED, null, null, null, Configuration::get('PS_OS_PAYMENT')),
-                    (int) ($order_details->id),
-                    true
-                );
-            }
-
-            $history->addWithEmail(true);
-            $history->save();
+        if (!$sessionStarted) {
+            header("Content-Type: text/plain");
+            echo "Failed to start session";
+            die();
         }
 
-        return $errors;
+        // Get the session cookie parameters
+        $params = session_get_cookie_params();
+
+        // Manually set the session cookie with SameSite=None
+        setcookie(
+            session_name(), // The name of the session cookie
+            session_id(),   // The session ID
+            [
+                'expires' => $params['lifetime'] ? time() + $params['lifetime'] : 0,
+                'path' => $params['path'],
+                'domain' => $params['domain'],
+                'secure' => true, // SameSite=None requires Secure to be true
+                'httponly' => $params['httponly'],
+                'samesite' => 'None'
+            ]
+        );
     }
 
-    /**
-     * Mark an order as canceled, store additional payment information and restore the user's cart.
-     * 
-     * @param Order $order_details The order object.
-     * @param bool $restoreCart Define whether to restore the user's cart from the order.
-     */
-    public static function markCanceledPayment(Module $module, Order $order_details, $restoreCart = false)
-    {
-        $errors = [];
-
-        $id_canceled_state = Configuration::get('PS_OS_CANCELED');
-
-        if ($order_details->current_state != $id_canceled_state) {
-            // Cancel order and revert cart contents.
-            $history = new OrderHistory();
-            $history->id_order = (int) $order_details->id;
-            $history->changeIdOrderState($id_canceled_state, (int) ($order_details->id));
-            $history->save();
-
-            if ($restoreCart) {
-                $errors = self::restoreCart($module, $order_details);
-            }
-        }
-
-        return $errors;
-    }
-
-    /**
-     * Restore last active quote based on checkout session
-     *
-     * @return bool True if quote restored successfully, false otherwise
-     */
-    public static function restoreCart(Module $module, Order $order_details)
-    {
-        $errors = [];
-
-        $id_order = (int) $order_details->id;
-        $oldCart = new Cart(Order::getCartIdStatic($id_order, $order_details->id_customer));
-        $duplication = $oldCart->duplicate();
-
-        if (!$duplication || !Validate::isLoadedObject($duplication['cart'])) {
-            $errors[] = $module->l('Sorry. We cannot renew your order.', 'cardlink_checkout');
-        } elseif (!$duplication['success']) {
-            $errors[] = $module->l('Some items are no longer available, and we are unable to renew your order.', 'cardlink_checkout');
-        } else {
-            try {
-                $context = Context::getContext();
-                $context->cookie->id_cart = $duplication['cart']->id;
-                $context->cart = $duplication['cart'];
-                CartRule::autoAddToCart($context);
-                $context->cookie->write();
-            } catch (Exception $e) {
-            }
-        }
-
-        return $errors;
-    }
-
-    public static function getPendingPaymentOrderStates()
-    {
-        $ret = [];
-
-        $orderStates = [
-            \Configuration::get('CARDLINK_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT'),
-            \Configuration::get('PS_CHECKOUT_STATE_WAITING_CREDIT_CARD_PAYMENT')
-        ];
-
-        foreach ($orderStates as $val) {
-            if ($val !== false) {
-                $ret[] = $val;
-            }
-        }
-
-        if (count($ret) == 0) {
-            $stateManager = new \OrderState(); //the id is possibly not required, did not try without
-            $states = $stateManager->getOrderStates(1);
-
-            foreach ($states as $state) {
-                if ($state['module_name'] == Cardlink_Checkout\Constants::MODULE_NAME) {
-                    $ret[] = $state['id_order_state'];
-                }
-            }
-        }
-
-        return $ret;
-    }
 }

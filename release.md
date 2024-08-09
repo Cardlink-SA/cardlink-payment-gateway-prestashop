@@ -1,3 +1,2 @@
-- Changed Github Action to automatically build the Prestashop Module archive file on tag assignment.
-- Bug fixes.
-- Validate Alpha Bonus digest.
+- Change flow to create orders only after successful payment.
+- Remove unpaid order cancelation cron job.

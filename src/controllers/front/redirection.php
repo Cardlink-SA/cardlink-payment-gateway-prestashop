@@ -1,9 +1,6 @@
 <?php
 
 use \Cardlink_Checkout\Constants;
-use \Configuration;
-use \Order;
-use \Validate;
 
 /**
  * Cardlink Checkout - A Payment Module for PrestaShop 1.7
@@ -20,10 +17,16 @@ class Cardlink_CheckoutRedirectionModuleFrontController extends ModuleFrontContr
 
     public function initContent()
     {
+        \Cardlink_Checkout\PaymentHelper::forceSessionCookieSameSiteNone();
+
         /**
          * Get current cart object from session
          */
         $cart = $this->context->cart;
+
+        if ($cart->id == null) {
+            Tools::redirect(self::ERROR_REDIRECT_URI);
+        }
 
         /** @var CustomerCore $customer */
         $customer = new Customer($cart->id_customer);
@@ -35,20 +38,10 @@ class Cardlink_CheckoutRedirectionModuleFrontController extends ModuleFrontContr
             Tools::redirect(self::ERROR_REDIRECT_URI);
         }
 
-        $id_order = Tools::getValue('id_order', 0);
         $payment_method = Tools::getValue('payment_method', 'card');
         $installments = intval(Tools::getValue('installments', 0));
         $stored_token = intval(Tools::getValue('stored_token', 0));
         $tokenize_card = boolval(Tools::getValue('tokenize_card', 0));
-
-        $order_details = new Order((int) ($id_order));
-
-        /**
-         * Check if the requested order is linked to the customer
-         */
-        if ($order_details->id_customer != $cart->id_customer) {
-            Tools::redirect(self::ERROR_REDIRECT_URI);
-        }
 
         /**
          * Redirect the customer to the order confirmation page
@@ -56,7 +49,7 @@ class Cardlink_CheckoutRedirectionModuleFrontController extends ModuleFrontContr
         $redirectionFormData = Cardlink_Checkout\PaymentHelper::getFormDataForOrder(
             $payment_method,
             $customer,
-            $order_details,
+            $cart,
             $installments,
             $stored_token,
             $tokenize_card

@@ -28,7 +28,7 @@ class Cardlink_CheckoutValidationModuleFrontController extends ModuleFrontContro
             !$this->module->active || $cart->id_customer == 0 || $cart->id_address_delivery == 0
             || $cart->id_address_invoice == 0
         ) {
-            Tools::redirect('index.php?controller=order&step=1');
+            Tools::redirect(__PS_BASE_URI__ . 'index.php?controller=order&step=1');
         }
 
         /**
@@ -52,36 +52,10 @@ class Cardlink_CheckoutValidationModuleFrontController extends ModuleFrontContro
          * Check if this is a valid customer account
          */
         if (!Validate::isLoadedObject($customer)) {
-            Tools::redirect('index.php?controller=order&step=1');
+            Tools::redirect(__PS_BASE_URI__ . 'index.php?controller=order&step=1');
         }
 
         $total_order = (float) $this->context->cart->getOrderTotal(true, Cart::BOTH);
-
-        /**
-         * Place the order
-         */
-
-        $orderState = 0;
-        $pendingPaymentOrderStates = Cardlink_Checkout\PaymentHelper::getPendingPaymentOrderStates();
-
-        foreach ($pendingPaymentOrderStates as $val) {
-            if ($val !== false) {
-                $orderState = $val;
-                break;
-            }
-        }
-
-        $this->module->validateOrder(
-            (int) $this->context->cart->id,
-            $orderState,
-            $total_order,
-            $this->module->displayName,
-            null,
-            [],
-            (int) $this->context->currency->id,
-            false,
-            $customer->secure_key
-        );
 
         $payment_method = Tools::getValue('payment_method', 'card');
         $installments = (int) Tools::getValue('installments', '0');
@@ -92,7 +66,6 @@ class Cardlink_CheckoutValidationModuleFrontController extends ModuleFrontContro
         $redirectParameters = [
             'id_cart' => (int) $cart->id,
             'id_module' => (int) $this->module->id,
-            'id_order' => $this->module->currentOrder,
             'key' => $customer->secure_key,
             'payment_method' => $payment_method,
             'installments' => min($installments, $max_installments),
