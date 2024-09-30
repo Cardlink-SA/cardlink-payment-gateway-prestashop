@@ -15,11 +15,11 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-require_once (dirname(__FILE__) . '/constants.php');
-require_once (dirname(__FILE__) . '/apifields.php');
-require_once (dirname(__FILE__) . '/helpers/payment.php');
-require_once (dirname(__FILE__) . '/models/Installments.php');
-require_once (dirname(__FILE__) . '/models/StoredToken.php');
+require_once(dirname(__FILE__) . '/constants.php');
+require_once(dirname(__FILE__) . '/apifields.php');
+require_once(dirname(__FILE__) . '/helpers/payment.php');
+require_once(dirname(__FILE__) . '/models/Installments.php');
+require_once(dirname(__FILE__) . '/models/StoredToken.php');
 
 
 class Cardlink_Checkout extends PaymentModule
@@ -33,7 +33,7 @@ class Cardlink_Checkout extends PaymentModule
     {
         $this->name = Cardlink_Checkout\Constants::MODULE_NAME;
         $this->tab = 'payments_gateways';
-        $this->version = '1.0.14';
+        $this->version = '1.1.0';
         $this->author = 'Cardlink S.A.';
         $this->controllers = ['payment', 'validation'];
         $this->currencies = true;

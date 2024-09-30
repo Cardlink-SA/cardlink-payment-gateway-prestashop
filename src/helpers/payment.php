@@ -20,7 +20,7 @@ use OrderHistory;
 use State;
 use Validate;
 
-require_once (dirname(__FILE__) . '/../apifields.php');
+require_once(dirname(__FILE__) . '/../apifields.php');
 
 /**
  * Helper class containing methods to handle payment related functionalities.
@@ -170,6 +170,15 @@ class PaymentHelper
         $shipping_state = new State(intval($shipping_details->id_state));
         $currency = new Currency(intval($cart->id_currency), null, intval($cart->id_shop));
 
+        global $cookie;
+        $idLang = (int) $cookie->id_lang;
+
+        $shop = Context::getContext()->shop;
+        $idShopGroup = (int) $shop->id_shop_group;
+        $idShop = (int) $shop->id;
+
+        $enableIrisPayments = Cardlink_Checkout\Constants::ENABLE_IRIS_PAYMENTS && boolval(Configuration::get(Cardlink_Checkout\Constants::CONFIG_IRIS_ENABLE, $idLang, $idShopGroup, $idShop, '0'));
+
         if ($payment_method == 'IRIS' && $enableIrisPayments) {
             $merchantId = Configuration::get(Constants::CONFIG_IRIS_MERCHANT_ID);
             $sharedSecret = Configuration::get(Constants::CONFIG_IRIS_SHARED_SECRET);
@@ -202,7 +211,7 @@ class PaymentHelper
         $formData[ApiFields::CancelUrl] = $returnUrl;
 
         // Order information
-        $formData[ApiFields::OrderId] = $cart->id . 'x' . date("YmdHis");
+        $formData[ApiFields::OrderId] = $cart->id . 'x' . date("His");
         $formData[ApiFields::OrderAmount] = floatval($total_amount); // Get order total amount
         $formData[ApiFields::Currency] = $currency->iso_code; // Get order currency code
 
@@ -343,7 +352,7 @@ class PaymentHelper
 
         $orderIdNum = (int) filter_var($orderId, FILTER_SANITIZE_NUMBER_INT);
 
-        $randomNumber = str_pad($orderIdNum, 13, '0', STR_PAD_LEFT);
+        $randomNumber = substr(str_pad($orderIdNum, 13, '0', STR_PAD_LEFT), -13);
         $paymentCode = $paymentSum ? ($paymentSum % 8) : '8';
         $systemCode = '12';
         $tempCode = $diasCustomerCode . $paymentCode . $systemCode . $randomNumber . '271500';

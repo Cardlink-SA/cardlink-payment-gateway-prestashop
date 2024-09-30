@@ -43,6 +43,8 @@
 - **1.0.14**
   - Changed flow to create orders only after successful payment.
   - Removed unpaid order cancelation cron job.
+- **1.1.0**
+  - Added support for IRIS payments
 
 
 ## Description
@@ -65,6 +67,7 @@ Once you have completed the requested tests and any changes to your website, you
 8. In-store checkout option: the merchant can configure the payment process to take place inside a pop up with IFRAME to mask the redirection process from the customers.
 9. A text field for providing the absolute or relative (to Cardlink Payment Gateway location on server) URL of custom CSS stylesheet, to apply custom CSS styles in the payment page.
 10. Translation ready for Greek & English languages.
+11. Support for IRIS payments.
 
 
 ## Installation
