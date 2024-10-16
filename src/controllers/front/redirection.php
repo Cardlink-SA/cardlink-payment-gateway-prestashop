@@ -58,16 +58,18 @@ class Cardlink_CheckoutRedirectionModuleFrontController extends ModuleFrontContr
         if ($payment_method == 'IRIS') {
             $businessPartner = Configuration::get(Constants::CONFIG_IRIS_BUSINESS_PARTNER, null, null, null, Constants::BUSINESS_PARTNER_NEXI);
             $transactionEnvironment = Configuration::get(Constants::CONFIG_IRIS_TRANSACTION_ENVIRONMENT, null, null, null, Constants::TRANSACTION_ENVIRONMENT_PRODUCTION);
+            $useIframe = false;
         } else {
             $businessPartner = Configuration::get(Constants::CONFIG_BUSINESS_PARTNER, null, null, null, Constants::BUSINESS_PARTNER_CARDLINK);
             $transactionEnvironment = Configuration::get(Constants::CONFIG_TRANSACTION_ENVIRONMENT, null, null, null, Constants::TRANSACTION_ENVIRONMENT_PRODUCTION);
+            $useIframe = boolval(Configuration::get(Cardlink_Checkout\Constants::CONFIG_USE_IFRAME, null, null, null, '0'));
         }
 
         $this->context->smarty->assign([
             'action' => Cardlink_Checkout\PaymentHelper::getPaymentGatewayDataPostUrl($businessPartner, $transactionEnvironment),
             'form_data' => $redirectionFormData,
             'css_url' => $this->module->getPathUri() . 'views/css/front-custom.css',
-            'use_iframe' => boolval(Configuration::get(Cardlink_Checkout\Constants::CONFIG_USE_IFRAME, '0'))
+            'use_iframe' => $useIframe
         ]);
 
         /**

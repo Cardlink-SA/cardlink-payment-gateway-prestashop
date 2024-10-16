@@ -10,41 +10,45 @@
 
 ## Changelog
 
-- **1.0.0**
-  - Initial release
-- **1.0.1**
-  - Added settings for order states after successful capture/authorize payments.
-  - Added cron job script and HTTP endpoint for canceling orders that have been abandoned (left in waiting for payment for more than 1 hour).
-- **1.0.2**
-  - Added hook to disable sending order confirmation email to customer for the waiting payment state.
-- **1.0.3**
-  - Added support for Prestashop version 8.0.x, added missing order state, fixed minor bugs.
-- **1.0.4**
-  - Added payment success/denied/canceled/error pages.
-- **1.0.5**
-  - Fixed data-module-name value in checkout.
-- **1.0.6**
-  - Removed billing state from data sent to the payment gateway.
-- **1.0.7**
-  - Bug fixes.
-  - Validate Alpha Bonus digest.
-- **1.0.8**
-  -	Bug fixes in checkout response controller.
-- **1.0.9**
-  -	Minor bug fixes.
-- **1.0.10**
-  -	Minor bug fixes.
-- **1.0.11**
-  - Enforced creation of pending credit card payment order state.
-- **1.0.12**
-  - Support backorder related order states for sending order confirmation/notification emails only when payment is successful.
-- **1.0.13**
-  -	Minor bug fixes.
+- **1.1.1**
+  - Minor fixes.
+  - Added translations.
+  - Update README.
+- **1.1.0**
+  - Added support for IRIS payments.
 - **1.0.14**
   - Changed flow to create orders only after successful payment.
   - Removed unpaid order cancelation cron job.
-- **1.1.0**
-  - Added support for IRIS payments
+- **1.0.13**
+  -	Minor bug fixes.
+- **1.0.12**
+  - Support backorder related order states for sending order confirmation/notification emails only when payment is successful.
+- **1.0.11**
+  - Enforced creation of pending credit card payment order state.
+- **1.0.10**
+  -	Minor bug fixes.
+- **1.0.9**
+  -	Minor bug fixes.
+- **1.0.8**
+  -	Bug fixes in checkout response controller.
+- **1.0.7**
+  - Bug fixes.
+  - Validate Alpha Bonus digest.
+- **1.0.6**
+  - Removed billing state from data sent to the payment gateway.
+- **1.0.5**
+  - Fixed data-module-name value in checkout.
+- **1.0.4**
+  - Added payment success/denied/canceled/error pages.
+- **1.0.3**
+  - Added support for Prestashop version 8.0.x, added missing order state, fixed minor bugs.
+- **1.0.2**
+  - Added hook to disable sending order confirmation email to customer for the waiting payment state.
+- **1.0.1**
+  - Added settings for order states after successful capture/authorize payments.
+  - Added cron job script and HTTP endpoint for canceling orders that have been abandoned (left in waiting for payment for more than 1 hour).
+- **1.0.0**
+  - Initial release
 
 
 ## Description
@@ -67,7 +71,9 @@ Once you have completed the requested tests and any changes to your website, you
 8. In-store checkout option: the merchant can configure the payment process to take place inside a pop up with IFRAME to mask the redirection process from the customers.
 9. A text field for providing the absolute or relative (to Cardlink Payment Gateway location on server) URL of custom CSS stylesheet, to apply custom CSS styles in the payment page.
 10. Translation ready for Greek & English languages.
-11. Support for IRIS payments.
+11.	Support for IRIS payments for Nexi acquirer only.
+12.	The IFRAME feature is not supported for IRIS payments
+
 
 
 ## Installation
@@ -142,6 +148,9 @@ If you are unsure or unfamiliar with the actions described above, please ask a t
 ![image004](https://developer.cardlink.gr/downloads/cardlink-payment-gateway-prestashop-assets/image004.png)
 3. This is the front-end of Cardlink Payment Gateway plugin located in checkout page.
 ![image005](https://developer.cardlink.gr/downloads/cardlink-payment-gateway-prestashop-assets/image005.png)
+4. To set up IRIS payments, you will need to have the Merchant ID, Shared Secret and DIAS Customer ID specifically issued for use with IRIS. Other settings are similar to the ones for Card Payments.
+![image006](README-IMAGES/image006.png)
+ 
 
 ##  Support tickets
 

@@ -75,7 +75,12 @@ class Cardlink_CheckoutValidationModuleFrontController extends ModuleFrontContro
 
         $redirectUrl = $this->context->link->getModuleLink($this->module->name, 'redirection', $redirectParameters, true);
 
-        if (boolval(Configuration::get(Cardlink_Checkout\Constants::CONFIG_USE_IFRAME, '0'))) {
+        $useIframe = false;
+        if ($payment_method == 'card') {
+            $useIframe = boolval(Configuration::get(Cardlink_Checkout\Constants::CONFIG_USE_IFRAME, null, null, null, '0'));
+        }
+
+        if ($useIframe) {
             $this->context->smarty->assign([
                 'src' => $redirectUrl
             ]);

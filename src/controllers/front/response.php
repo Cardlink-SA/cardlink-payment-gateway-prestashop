@@ -190,8 +190,14 @@ class Cardlink_CheckoutResponseModuleFrontController extends ModuleFrontControll
             //$this->errors = Cardlink_Checkout\PaymentHelper::markCanceledPayment($this->module, $order_details, true);
         }
 
+        $useIframe = false;
+
+        if ($payMethod != 'IRIS') {
+            $useIframe = boolval(Configuration::get(Cardlink_Checkout\Constants::CONFIG_USE_IFRAME, null, null, null, '0'));
+        }
+
         // If the payment flow executed inside the IFRAME, send out a redirection form page to force open the final response page in the parent frame (store window/tab).
-        if (boolval(Configuration::get(Cardlink_Checkout\Constants::CONFIG_USE_IFRAME))) {
+        if ($useIframe) {
             if ($success) {
                 $redirectParameters = [
                     'id_shop' => $id_shop,
@@ -223,7 +229,7 @@ class Cardlink_CheckoutResponseModuleFrontController extends ModuleFrontControll
                 'action' => explode('?', $redirectUrl)[0],
                 'form_data' => $redirectParameters,
                 'css_url' => $this->module->getPathUri() . 'views/css/front-custom.css',
-                'use_iframe' => boolval(Configuration::get(Cardlink_Checkout\Constants::CONFIG_USE_IFRAME, '0'))
+                'use_iframe' => $useIframe
             ]);
 
             /**

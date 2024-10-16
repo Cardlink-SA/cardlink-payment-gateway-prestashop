@@ -660,7 +660,7 @@ class Cardlink_Checkout extends PaymentModule
                 'type' => 'select',
                 'name' => Cardlink_Checkout\Constants::CONFIG_USE_IFRAME,
                 'label' => $this->l('Checkout without Leaving Your Store'),
-                'desc' => $this->l('Perform the payment flow without having the customers leave your website for Cardlink\'s payment gateway. You will need to have a valid SSL certificate properly configured on your domain.'),
+                'desc' => $this->l('For card payments only! Perform the payment flow without having the customers leave your website for Cardlink\'s payment gateway. You will need to have a valid SSL certificate properly configured on your domain.'),
                 'hint' => null,
                 'options' => [
                     'query' => [

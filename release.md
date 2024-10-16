@@ -1,2 +1,1 @@
-- Change flow to create orders only after successful payment.
-- Remove unpaid order cancelation cron job.
+- Added support for IRIS payments.
