@@ -17,8 +17,8 @@ class Installments extends ObjectModel
     // 
 
     /*
-    * @see ObjectModel::$definition => (this is the Model)
-    */
+     * @see ObjectModel::$definition => (this is the Model)
+     */
     public static $definition = [
         'table' => Constants::TABLE_NAME_INSTALLMENTS,
         'primary' => self::IDENTIFIER,
@@ -27,8 +27,14 @@ class Installments extends ObjectModel
             'min_amount' => ['type' => ObjectModel::TYPE_FLOAT],
             'max_amount' => ['type' => ObjectModel::TYPE_FLOAT],
             'max_installments' => ['type' => ObjectModel::TYPE_INT],
-            'date_add' => ['type' => ObjectModel::TYPE_DATE],
-            'date_upd' => ['type' => ObjectModel::TYPE_DATE]
+            'date_add' => ['type' => ObjectModel::TYPE_DATE, 'validate' => 'isDate'],
+            'date_upd' => ['type' => ObjectModel::TYPE_DATE, 'validate' => 'isDate']
         ],
     ];
+
+    /**
+     * Automatically update the `updated_at` field when the object is updated.
+     * @var string
+     */
+    public $update_date_field = 'date_upd';
 }

@@ -3,13 +3,17 @@
 - Contributors: cardlink
 - Tags: payments, payment-gateway
 - Requires at least: 1.7.x
-- Tested up to: 8.0.1
+- Tested up to: 8.2
 - Requires PHP: 7.x - 8.x
 - License: GPLv2 or later
 - License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 ## Changelog
-
+- **1.1.2**
+  - Add Cardlink and Worldline as IRIS business partners.
+  - Support MySQL versions older than 5.6.5.
+  - Fix guest checkout redirect to order confirmation bug.
+  - Tested compatibility with version 8.2.
 - **1.1.1**
   - Minor fixes.
   - Added translations.
@@ -61,7 +65,7 @@ Once you have completed the requested tests and any changes to your website, you
 
 ## Features
 
-1. A dropdown option for instance between Worldline, Nexi και Cardlink.
+1. A dropdown option for instance between Worldline, Nexi and Cardlink.
 2. Option to enable test environment (sandbox). All transactions will be re-directed to the endpoint that represents the production environment by default. The endpoint will be different depending on which acquirer has been chosen from instance dropdown option.
 3. Ability to define the maximum number of installments regardless of the total order amount.
 4. Ability to define the ranges of the total order amounts and the maximum number of installments for each range.
@@ -71,7 +75,7 @@ Once you have completed the requested tests and any changes to your website, you
 8. In-store checkout option: the merchant can configure the payment process to take place inside a pop up with IFRAME to mask the redirection process from the customers.
 9. A text field for providing the absolute or relative (to Cardlink Payment Gateway location on server) URL of custom CSS stylesheet, to apply custom CSS styles in the payment page.
 10. Translation ready for Greek & English languages.
-11.	Support for IRIS payments for Nexi acquirer only.
+11.	Support for IRIS payments for Worldline, Nexi and Cardlink acquirers.
 12.	The IFRAME feature is not supported for IRIS payments
 
 

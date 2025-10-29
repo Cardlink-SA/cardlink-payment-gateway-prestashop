@@ -33,7 +33,7 @@ class Cardlink_Checkout extends PaymentModule
     {
         $this->name = Cardlink_Checkout\Constants::MODULE_NAME;
         $this->tab = 'payments_gateways';
-        $this->version = '1.1.0';
+        $this->version = '1.1.2';
         $this->author = 'Cardlink S.A.';
         $this->controllers = ['payment', 'validation'];
         $this->currencies = true;
@@ -54,38 +54,70 @@ class Cardlink_Checkout extends PaymentModule
      * @return bool
      */
     public function install()
-    {
+    { // Get MySQL version
+        $mysqlVersion = Db::getInstance()->getVersion();
+
         return parent::install()
             && $this->registerHook('paymentOptions')
             && $this->registerHook('paymentReturn')
             && $this->registerHook('displayBackOfficeHeader')
             && $this->registerHook('displayHeader')
-            && Db::getInstance()->execute('
-            CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . Cardlink_Checkout\Constants::TABLE_NAME_INSTALLMENTS . '` (
-                `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-                `min_amount` DECIMAL(20, 2) NOT NULL DEFAULT "0",
-                `max_amount` DECIMAL(20, 2) NOT NULL DEFAULT "0",
-                `max_installments` INT(4) NOT NULL DEFAULT "0",
-                `date_add` DATETIME DEFAULT CURRENT_TIMESTAMP,
-                `date_upd` DATETIME ON UPDATE CURRENT_TIMESTAMP,
-                PRIMARY KEY (`id`)
-            ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8;')
-
-            && Db::getInstance()->execute('
-            CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . Cardlink_Checkout\Constants::TABLE_NAME_STORED_TOKENS . '` (
-                `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-                `id_customer` INT(10) UNSIGNED NOT NULL,
-                `active` TINYINT(1) NOT NULL DEFAULT "1",
-                `token` VARCHAR(50) DEFAULT NULL,
-                `type` VARCHAR(20) NOT NULL,
-                `last_4digits` CHAR(4) NOT NULL,
-                `expiration` CHAR(8) NOT NULL,
-                `date_add` DATETIME DEFAULT CURRENT_TIMESTAMP,
-                PRIMARY KEY (`id`),
-                INDEX `IDX_id_customer_active_expiration` (`id_customer`, `active`, `expiration`),
-                UNIQUE KEY `IDX_unique_card` (`id_customer`, `token`, `type`, `last_4digits`, `expiration`),
-                FOREIGN KEY (`id_customer`) REFERENCES `' . _DB_PREFIX_ . 'customer` (`id_customer`) ON DELETE CASCADE ON UPDATE CASCADE
-            ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8;');
+            && (
+                version_compare($mysqlVersion, '5.6.5', '<')
+                ? Db::getInstance()->execute('
+                    CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . Cardlink_Checkout\Constants::TABLE_NAME_INSTALLMENTS . '` (
+                        `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+                        `min_amount` DECIMAL(20, 2) NOT NULL DEFAULT "0",
+                        `max_amount` DECIMAL(20, 2) NOT NULL DEFAULT "0",
+                        `max_installments` INT(4) NOT NULL DEFAULT "0",
+                        `date_add` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        `date_upd` DATETIME NULL DEFAULT NULL,
+                        PRIMARY KEY (`id`)
+                    ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8;')
+                : Db::getInstance()->execute('
+                    CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . Cardlink_Checkout\Constants::TABLE_NAME_INSTALLMENTS . '` (
+                        `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+                        `min_amount` DECIMAL(20, 2) NOT NULL DEFAULT "0",
+                        `max_amount` DECIMAL(20, 2) NOT NULL DEFAULT "0",
+                        `max_installments` INT(4) NOT NULL DEFAULT "0",
+                        `date_add` DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        `date_upd` DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+                        PRIMARY KEY (`id`)
+                    ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8;')
+            )
+            && (
+                version_compare($mysqlVersion, '5.6.5', '<')
+                ? Db::getInstance()->execute('
+                    CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . Cardlink_Checkout\Constants::TABLE_NAME_STORED_TOKENS . '` (
+                        `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+                        `id_customer` INT(10) UNSIGNED NOT NULL,
+                        `active` TINYINT(1) NOT NULL DEFAULT "1",
+                        `token` VARCHAR(50) DEFAULT NULL,
+                        `type` VARCHAR(20) NOT NULL,
+                        `last_4digits` CHAR(4) NOT NULL,
+                        `expiration` CHAR(8) NOT NULL,
+                        `date_add` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (`id`),
+                        INDEX `IDX_id_customer_active_expiration` (`id_customer`, `active`, `expiration`),
+                        UNIQUE KEY `IDX_unique_card` (`id_customer`, `token`, `type`, `last_4digits`, `expiration`),
+                        FOREIGN KEY (`id_customer`) REFERENCES `' . _DB_PREFIX_ . 'customer` (`id_customer`) ON DELETE CASCADE ON UPDATE CASCADE
+                    ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8;')
+                : Db::getInstance()->execute('
+                    CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . Cardlink_Checkout\Constants::TABLE_NAME_STORED_TOKENS . '` (
+                        `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+                        `id_customer` INT(10) UNSIGNED NOT NULL,
+                        `active` TINYINT(1) NOT NULL DEFAULT "1",
+                        `token` VARCHAR(50) DEFAULT NULL,
+                        `type` VARCHAR(20) NOT NULL,
+                        `last_4digits` CHAR(4) NOT NULL,
+                        `expiration` CHAR(8) NOT NULL,
+                        `date_add` DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (`id`),
+                        INDEX `IDX_id_customer_active_expiration` (`id_customer`, `active`, `expiration`),
+                        UNIQUE KEY `IDX_unique_card` (`id_customer`, `token`, `type`, `last_4digits`, `expiration`),
+                        FOREIGN KEY (`id_customer`) REFERENCES `' . _DB_PREFIX_ . 'customer` (`id_customer`) ON DELETE CASCADE ON UPDATE CASCADE
+                    ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8;')
+            );
     }
 
     /**
@@ -160,10 +192,6 @@ class Cardlink_Checkout extends PaymentModule
 
             $iris_title = self::getPostedMultilingualValue(Cardlink_Checkout\Constants::CONFIG_IRIS_TITLE, 'Pay using IRIS');
             $iris_description = self::getPostedMultilingualValue(Cardlink_Checkout\Constants::CONFIG_IRIS_DESCRIPTION, '');
-
-            if ($sellerId == '') {
-                $enableIrisPayments = false;
-            }
 
             $iris_businessPartner = Tools::getValue(Cardlink_Checkout\Constants::CONFIG_IRIS_BUSINESS_PARTNER, Cardlink_Checkout\Constants::BUSINESS_PARTNER_CARDLINK);
             $iris_merchantId = Tools::getValue(Cardlink_Checkout\Constants::CONFIG_IRIS_MERCHANT_ID, '');
@@ -518,8 +546,16 @@ class Cardlink_Checkout extends PaymentModule
                     'options' => [
                         'query' => [
                             [
+                                'id_option' => Cardlink_Checkout\Constants::BUSINESS_PARTNER_CARDLINK,
+                                'name' => 'Cardlink'
+                            ],
+                            [
                                 'id_option' => Cardlink_Checkout\Constants::BUSINESS_PARTNER_NEXI,
                                 'name' => 'Nexi'
+                            ],
+                            [
+                                'id_option' => Cardlink_Checkout\Constants::BUSINESS_PARTNER_WORLDLINE,
+                                'name' => 'Worldline'
                             ]
                         ],
                         'id' => 'id_option',
@@ -921,16 +957,15 @@ class Cardlink_Checkout extends PaymentModule
         $cardPaymentOption = new PrestaShop\PrestaShop\Core\Payment\PaymentOption;
         $cardPaymentOption->setModuleName(Cardlink_Checkout\Constants::MODULE_NAME)
             ->setCallToActionText($title)
-            ->setForm($paymentForm)
-            //->setLogo(Media::getMediaPath(_PS_MODULE_DIR_ . $this->name . '/views/images/cardlink.svg'))
-        ;
+            ->setForm($paymentForm);
+        //->setLogo(Media::getMediaPath(_PS_MODULE_DIR_ . $this->name . '/views/images/cardlink.svg'))
 
         $paymentMethodOptions = [$cardPaymentOption];
 
         $enableIrisPayments = Cardlink_Checkout\Constants::ENABLE_IRIS_PAYMENTS && boolval(Configuration::get(Cardlink_Checkout\Constants::CONFIG_IRIS_ENABLE, $idLang, $idShopGroup, $idShop, '0'));
         $sellerId = trim(Configuration::get(Cardlink_Checkout\Constants::CONFIG_IRIS_SELLER_ID, $idLang, $idShopGroup, $idShop, ''));
 
-        if ($enableIrisPayments && $sellerId != '') {
+        if ($enableIrisPayments) {
             /**
              *  Load form template to be displayed in the checkout step
              */
@@ -966,5 +1001,4 @@ class Cardlink_Checkout extends PaymentModule
 
         return $this->fetch('module:cardlink_checkout/views/templates/hook/payment_return.tpl');
     }
-
 }

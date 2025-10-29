@@ -201,13 +201,12 @@ class Cardlink_CheckoutResponseModuleFrontController extends ModuleFrontControll
             if ($success) {
                 $redirectParameters = [
                     'id_shop' => $id_shop,
-                    'id_cart' => (int) $order_cart_id,
+                    'id_cart' => (int) $cart->id,
                     'id_module' => (int) $this->module->id,
                     'id_order' => $id_order,
                     'key' => $customer->secure_key
                 ];
 
-                $redirectParameters['key'] = $customer->secure_key;
                 $redirectParameters['message'] = array_key_exists(Cardlink_Checkout\ApiFields::Message, $responseData)
                     ? $responseData[Cardlink_Checkout\ApiFields::Message]
                     : '';

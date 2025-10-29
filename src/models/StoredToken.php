@@ -19,8 +19,8 @@ class StoredToken extends ObjectModel
     // 
 
     /*
-    * @see ObjectModel::$definition => (this is the Model)
-    */
+     * @see ObjectModel::$definition => (this is the Model)
+     */
     public static $definition = [
         'table' => Constants::TABLE_NAME_STORED_TOKENS,
         'primary' => self::IDENTIFIER,
@@ -32,7 +32,7 @@ class StoredToken extends ObjectModel
             'type' => ['type' => ObjectModel::TYPE_STRING, 'validate' => 'isString'],
             'last_4digits' => ['type' => ObjectModel::TYPE_STRING, 'validate' => 'isString', 'size' => 4],
             'expiration' => ['type' => ObjectModel::TYPE_STRING, 'validate' => 'isString', 'size' => 8],
-            'date_add' => ['type' => ObjectModel::TYPE_DATE]
+            'date_add' => ['type' => ObjectModel::TYPE_DATE, 'validate' => 'isDate']
         ],
     ];
 

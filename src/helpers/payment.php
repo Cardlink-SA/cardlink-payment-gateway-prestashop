@@ -188,7 +188,6 @@ class PaymentHelper
         }
 
         $sellerId = trim(Configuration::get(Constants::CONFIG_IRIS_SELLER_ID));
-        $enableIrisPayments = boolval(Configuration::get(Constants::CONFIG_IRIS_ENABLE)) && $sellerId != '';
         $acceptsInstallments = Configuration::get(Constants::CONFIG_ACCEPT_INSTALLMENTS) != Constants::ACCEPT_INSTALLMENTS_NO;
 
         // Get the total amount including taxes, shipping, and discounts
@@ -217,8 +216,12 @@ class PaymentHelper
 
         if ($payment_method == 'IRIS' && $enableIrisPayments) {
             $formData[ApiFields::PaymentMethod] = 'IRIS';
-            $formData[ApiFields::OrderDescription] = self::generateIrisRFCode($sellerId, $formData[ApiFields::OrderId], $formData[ApiFields::OrderAmount]); // The type of transaction to perform (Sale/Authorize).
+            // The type of transaction to perform (Sale/Authorize).
             $formData[ApiFields::TransactionType] = '1';
+
+            if (Configuration::get(Constants::CONFIG_IRIS_BUSINESS_PARTNER, null, null, null, Constants::BUSINESS_PARTNER_NEXI) == Constants::BUSINESS_PARTNER_NEXI) {
+                $formData[ApiFields::OrderDescription] = self::generateIrisRFCode($sellerId, $formData[ApiFields::OrderId], $formData[ApiFields::OrderAmount]);
+            }
         } else {
             $formData[ApiFields::OrderDescription] = 'CART ' . $cart->id;
 
@@ -456,5 +459,4 @@ class PaymentHelper
             ]
         );
     }
-
 }
