@@ -33,7 +33,7 @@ class Cardlink_Checkout extends PaymentModule
     {
         $this->name = Cardlink_Checkout\Constants::MODULE_NAME;
         $this->tab = 'payments_gateways';
-        $this->version = '1.1.2';
+        $this->version = '1.1.3';
         $this->author = 'Cardlink S.A.';
         $this->controllers = ['payment', 'validation'];
         $this->currencies = true;
@@ -170,7 +170,6 @@ class Cardlink_Checkout extends PaymentModule
             $description = self::getPostedMultilingualValue(Cardlink_Checkout\Constants::CONFIG_DESCRIPTION, '');
 
             $enableIrisPayments = Cardlink_Checkout\Constants::ENABLE_IRIS_PAYMENTS && Tools::getValue(Cardlink_Checkout\Constants::CONFIG_IRIS_ENABLE, '0');
-            $sellerId = trim(Tools::getValue(Cardlink_Checkout\Constants::CONFIG_IRIS_SELLER_ID, ''));
 
             $orderStatusCaptured = Tools::getValue(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_CAPTURED, Configuration::get('PS_OS_PAYMENT'));
             $orderStatusAuthorized = Tools::getValue(Cardlink_Checkout\Constants::CONFIG_ORDER_STATUS_AUTHORIZED, Configuration::get('PS_CHECKOUT_STATE_AUTHORIZED'));
@@ -221,7 +220,6 @@ class Cardlink_Checkout extends PaymentModule
             Configuration::updateValue(Cardlink_Checkout\Constants::CONFIG_CSS_URL, $cssUrl);
 
             Configuration::updateValue(Cardlink_Checkout\Constants::CONFIG_IRIS_ENABLE, $enableIrisPayments);
-            Configuration::updateValue(Cardlink_Checkout\Constants::CONFIG_IRIS_SELLER_ID, $sellerId);
             Configuration::updateValue(Cardlink_Checkout\Constants::CONFIG_IRIS_TITLE, $iris_title);
             Configuration::updateValue(Cardlink_Checkout\Constants::CONFIG_IRIS_DESCRIPTION, $iris_description);
             Configuration::updateValue(Cardlink_Checkout\Constants::CONFIG_IRIS_BUSINESS_PARTNER, $iris_businessPartner);
@@ -604,17 +602,6 @@ class Cardlink_Checkout extends PaymentModule
                     ]
                 ],
                 [
-                    'type' => 'text',
-                    'name' => Cardlink_Checkout\Constants::CONFIG_IRIS_SELLER_ID,
-                    'label' => $this->l('Seller ID'),
-                    'desc' => $this->l('The seller ID for the DIAS network.'),
-                    'hint' => null,
-                    'size' => 50,
-                    'maxlength' => 255,
-                    'required' => false,
-                    'pattern' => '0-9'
-                ],
-                [
                     'type' => 'select',
                     'name' => Cardlink_Checkout\Constants::CONFIG_IRIS_DISPLAY_LOGO,
                     'label' => $this->l('Display IRIS Logo'),
@@ -783,7 +770,6 @@ class Cardlink_Checkout extends PaymentModule
         $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_CSS_URL] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_CSS_URL, null, null, null, '');
 
         $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_IRIS_ENABLE] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_IRIS_ENABLE, null, null, null, '0');
-        $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_IRIS_SELLER_ID] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_IRIS_SELLER_ID, null, null, null, '');
         $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_IRIS_BUSINESS_PARTNER] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_IRIS_BUSINESS_PARTNER, null, null, null, Cardlink_Checkout\Constants::BUSINESS_PARTNER_NEXI);
         $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_IRIS_MERCHANT_ID] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_IRIS_MERCHANT_ID, null, null, null, '');
         $helper->fields_value[Cardlink_Checkout\Constants::CONFIG_IRIS_SHARED_SECRET] = Configuration::get(Cardlink_Checkout\Constants::CONFIG_IRIS_SHARED_SECRET, null, null, null, '');
@@ -963,7 +949,6 @@ class Cardlink_Checkout extends PaymentModule
         $paymentMethodOptions = [$cardPaymentOption];
 
         $enableIrisPayments = Cardlink_Checkout\Constants::ENABLE_IRIS_PAYMENTS && boolval(Configuration::get(Cardlink_Checkout\Constants::CONFIG_IRIS_ENABLE, $idLang, $idShopGroup, $idShop, '0'));
-        $sellerId = trim(Configuration::get(Cardlink_Checkout\Constants::CONFIG_IRIS_SELLER_ID, $idLang, $idShopGroup, $idShop, ''));
 
         if ($enableIrisPayments) {
             /**

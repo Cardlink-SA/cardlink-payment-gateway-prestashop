@@ -187,7 +187,6 @@ class PaymentHelper
             $sharedSecret = Configuration::get(Constants::CONFIG_SHARED_SECRET);
         }
 
-        $sellerId = trim(Configuration::get(Constants::CONFIG_IRIS_SELLER_ID));
         $acceptsInstallments = Configuration::get(Constants::CONFIG_ACCEPT_INSTALLMENTS) != Constants::ACCEPT_INSTALLMENTS_NO;
 
         // Get the total amount including taxes, shipping, and discounts
@@ -218,10 +217,6 @@ class PaymentHelper
             $formData[ApiFields::PaymentMethod] = 'IRIS';
             // The type of transaction to perform (Sale/Authorize).
             $formData[ApiFields::TransactionType] = '1';
-
-            if (Configuration::get(Constants::CONFIG_IRIS_BUSINESS_PARTNER, null, null, null, Constants::BUSINESS_PARTNER_NEXI) == Constants::BUSINESS_PARTNER_NEXI) {
-                $formData[ApiFields::OrderDescription] = self::generateIrisRFCode($sellerId, $formData[ApiFields::OrderId], $formData[ApiFields::OrderAmount]);
-            }
         } else {
             $formData[ApiFields::OrderDescription] = 'CART ' . $cart->id;
 
@@ -326,46 +321,6 @@ class PaymentHelper
         $ret[ApiFields::Digest] = self::generateDigest($concatenatedData);
 
         return $ret;
-    }
-
-    /**
-     * Generate the Request Fund (RF) code for IRIS payments.
-     * @param string $diasCustomerCode The DIAS customer code of the merchant.
-     * @param mixed $orderId The ID of the order.
-     * @param mixed $amount The amount due.
-     * @return string The generated RF code.
-     */
-    public static function generateIrisRFCode(string $diasCustomerCode, $orderId, $amount)
-    {
-        /* calculate payment check code */
-        $paymentSum = 0;
-
-        if ($amount > 0) {
-            $ordertotal = str_replace([','], '.', (string) $amount);
-            $ordertotal = number_format($ordertotal, 2, '', '');
-            $ordertotal = strrev($ordertotal);
-            $factor = [1, 7, 3];
-            $idx = 0;
-            for ($i = 0; $i < strlen($ordertotal); $i++) {
-                $idx = $idx <= 2 ? $idx : 0;
-                $paymentSum += $ordertotal[$i] * $factor[$idx];
-                $idx++;
-            }
-        }
-
-        $orderIdNum = (int) filter_var($orderId, FILTER_SANITIZE_NUMBER_INT);
-
-        $randomNumber = substr(str_pad($orderIdNum, 13, '0', STR_PAD_LEFT), -13);
-        $paymentCode = $paymentSum ? ($paymentSum % 8) : '8';
-        $systemCode = '12';
-        $tempCode = $diasCustomerCode . $paymentCode . $systemCode . $randomNumber . '271500';
-        $mod97 = bcmod($tempCode, '97');
-
-        $cd = 98 - (int) $mod97;
-        $cd = str_pad((string) $cd, 2, '0', STR_PAD_LEFT);
-        $rf_payment_code = 'RF' . $cd . $diasCustomerCode . $paymentCode . $systemCode . $randomNumber;
-
-        return $rf_payment_code;
     }
 
     /**

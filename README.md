@@ -9,6 +9,8 @@
 - License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 ## Changelog
+- **1.1.3**
+  - Remove requirement for IRIS customer code configuration setting.
 - **1.1.2**
   - Add Cardlink and Worldline as IRIS business partners.
   - Support MySQL versions older than 5.6.5.
@@ -152,7 +154,7 @@ If you are unsure or unfamiliar with the actions described above, please ask a t
 ![image004](https://developer.cardlink.gr/downloads/cardlink-payment-gateway-prestashop-assets/image004.png)
 3. This is the front-end of Cardlink Payment Gateway plugin located in checkout page.
 ![image005](https://developer.cardlink.gr/downloads/cardlink-payment-gateway-prestashop-assets/image005.png)
-4. To set up IRIS payments, you will need to have the Merchant ID, Shared Secret and DIAS Customer ID specifically issued for use with IRIS. Other settings are similar to the ones for Card Payments.
+4. To set up IRIS payments, you will need to have the Merchant ID and Shared Secret specifically issued for use with IRIS. Other settings are similar to the ones for Card Payments.
 ![image006](README-IMAGES/image006.png)
  
 

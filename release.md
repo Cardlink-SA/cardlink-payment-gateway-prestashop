@@ -1,1 +1,1 @@
-- Added support for IRIS payments.
+- Remove requirement for IRIS customer code configuration setting.
