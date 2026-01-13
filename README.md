@@ -10,7 +10,7 @@
 
 ## Changelog
 - **1.1.3**
-  - Remove requirement for IRIS customer code configuration setting.
+  - Remove requirement for IRIS customer code configuration setting. If you already use IRIS with your own seller id, DO NOT install the new version!
 - **1.1.2**
   - Add Cardlink and Worldline as IRIS business partners.
   - Support MySQL versions older than 5.6.5.
