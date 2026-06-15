@@ -7,12 +7,13 @@
  * @license https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
  *}
 <div class="additional-information">
+    <link rel="stylesheet" href="{$front_css_url|escape:'htmlall':'UTF-8'}" />
 
     <form method="post" action="{$action}">
         <input type="hidden" name="payment_method" value="IRIS" />
 
         <img src="{$iris_logo_url}" id="cardlink_checkout--iris-payment-method-logo"
-            class="cardlink_checkout--payment-option-logo" />
+            class="cardlink_checkout--payment-option-logo" style="max-height: 38px; width: auto;" />
 
         {if ($iris_description != '')}
             <div class="cardlink_checkout--iris-payment-method-description">

@@ -100,62 +100,76 @@ class Cardlink_CheckoutResponseModuleFrontController extends ModuleFrontControll
                 }
 
                 try {
-                    $this->module->validateOrder(
-                        (int) $cart->id,
-                        $orderState,
-                        $total_amount,
-                        $this->module->displayName,
-                        null,
-                        [
-                            'transaction_id' => $responseData[Cardlink_Checkout\ApiFields::TransactionId]
-                        ],
-                        (int) $cart->id_currency,
-                        false,
-                        $customer->secure_key
-                    );
+                    // Determine if this is a captured (sale) or pre-authorized transaction
+                    $isCaptured = ($responseData[Cardlink_Checkout\ApiFields::Status] === Cardlink_Checkout\Constants::TRANSACTION_STATUS_CAPTURED);
+                    
+                    // Check if order was already created by backgroundconfirmation webhook
+                    $existingOrderId = Order::getIdByCartId((int) $cart->id);
+                    if ($existingOrderId) {
+                        // Order already exists - skip to success redirect
+                        $order_id = (int) $existingOrderId;
+                        $order_details = new Order($order_id);
+                    } else {
+                        // Don't pass transaction_id to validateOrder - it creates a payment record without card details
+                        // We'll create/update the payment record ourselves with full card details
+                        $extraVars = [];
 
-                    $order_id = $this->module->currentOrder;
-                    $order_details = new Order($order_id);
+                        $this->module->validateOrder(
+                            (int) $cart->id,
+                            $orderState,
+                            $total_amount,
+                            $this->module->displayName,
+                            null,
+                            $extraVars,
+                            (int) $cart->id_currency,
+                            false,
+                            $customer->secure_key
+                        );
 
-                    // if ($payMethod != 'IRIS') {
+                        $order_id = $this->module->currentOrder;
+                        $order_details = new Order($order_id);
 
-                    //     $sql = 'SELECT * FROM `' . _DB_PREFIX_ . 'order_payment` WHERE `order_reference` = \'' . pSQL($order_details->reference) . '\'';
-                    //     $order_payments = Db::getInstance()->executeS($sql);
+                        // Store Cardlink order ID in the order for later capture/void operations
+                        $cardlink_order_id = $responseData[Cardlink_Checkout\ApiFields::OrderId];
+                        
+                        Cardlink_Checkout\PaymentResponseProcessor::storeCardlinkOrderId($order_id, $cardlink_order_id);
 
-                    //     if (count($order_payments)) {
-                    //         $order_payment = $order_payments[0];
+                        // Update the order_details object to reflect the change
+                        $order_details->cardlink_order_id = $cardlink_order_id;
 
-                    //         if (array_key_exists(Cardlink_Checkout\ApiFields::ExtTokenPanEnd, $responseData)) {
-                    //             // Create a DateTime object from the input string
-                    //             $date = DateTime::createFromFormat('Ymd', $responseData[Cardlink_Checkout\ApiFields::ExtTokenExpiration]);
+                        // Create initial transaction record for the payment
+                        try {
+                            \CardlinkPaymentTransaction::createTransaction([
+                                'id_order' => $order_id,
+                                'cardlink_order_id' => $cardlink_order_id,
+                                'cardlink_tx_id' => $responseData[Cardlink_Checkout\ApiFields::TransactionId] ?? null,
+                                'cardlink_pay_status' => $responseData[Cardlink_Checkout\ApiFields::Status],
+                                'cardlink_pay_method' => $responseData[Cardlink_Checkout\ApiFields::PaymentMethod] ?? $payMethod,
+                                'cardlink_pay_ref' => $responseData[Cardlink_Checkout\ApiFields::PaymentReferenceId] ?? null,
+                                'order_amount' => $total_amount,
+                                'currency' => Currency::getIsoCodeById((int) $cart->id_currency),
+                                'transaction_type' => $isCaptured ? 'sale' : 'authorize'
+                            ]);
+                        } catch (\Exception $txEx) {
+                            // Log error but don't fail the order
+                            PrestaShopLogger::addLog('Cardlink: Failed to create transaction record: ' . $txEx->getMessage(), 3);
+                        }
 
-                    //             // Check if the date was created successfully
-                    //             if ($date === false) {
-                    //                 $formattedDate = 'n/a';
-                    //             } else {
-                    //                 // Format the date to MM/YYYY
-                    //                 $formattedDate = $date->format('m/Y');
-                    //             }
-                    //         } else {
-                    //             $formattedDate = 'n/a';
-                    //         }
-
-                    //         $cardNumber = array_key_exists(Cardlink_Checkout\ApiFields::ExtTokenPanEnd, $responseData)
-                    //             ? str_pad($responseData[Cardlink_Checkout\ApiFields::ExtTokenPanEnd], 16, 'x', STR_PAD_LEFT)
-                    //             : 'n/a';
-
-                    //         \Db::getInstance()->update(
-                    //             'order_payment',
-                    //             [
-                    //                 'transaction_id' => pSQL($responseData[Cardlink_Checkout\ApiFields::TransactionId]),
-                    //                 'card_number' => pSQL($cardNumber),
-                    //                 'card_expiration' => pSQL($formattedDate),
-                    //                 'card_brand' => pSQL($responseData[Cardlink_Checkout\ApiFields::PaymentMethod])
-                    //             ],
-                    //             'id_order_payment = ' . (int) $order_payment['id_order_payment']
-                    //         );
-                    //     }
-                    // }
+                        // For captured (sale) transactions, create/update payment record with card details
+                        // For pre-authorized transactions, delete any auto-created payment record and invoice
+                        // Payment record will be created upon capture for pre-auth
+                        if ($isCaptured) {
+                            Cardlink_Checkout\PaymentResponseProcessor::handleCapturedPaymentRecord(
+                                $order_details,
+                                $responseData,
+                                $total_amount,
+                                $this->module->displayName
+                            );
+                        } else {
+                            Cardlink_Checkout\PaymentResponseProcessor::handlePreAuthCleanup($order_details);
+                        }
+                    }
+                    // End of else block - order_details is now set either from existing order or new order
 
 
                 } catch (\Exception $ex) {

@@ -27,7 +27,13 @@ class AdminCardlink_CheckoutInstallmentsManagerController extends ModuleAdminCon
         $acceptsOrderBasedInstallments = Configuration::get(Cardlink_Checkout\Constants::CONFIG_ACCEPT_INSTALLMENTS) == Cardlink_Checkout\Constants::ACCEPT_INSTALLMENTS_ORDER_AMOUNT;
 
         if (!$this->module->active || !$acceptsOrderBasedInstallments) {
-            Tools::redirectAdmin($this->context->link->getAdminLink('AdminDashboard'));
+            $dashboardUrl = $this->context->link->getAdminLink('AdminDashboard');
+            if (method_exists('Tools', 'redirectAdmin')) {
+                Tools::redirectAdmin($dashboardUrl);
+            } else {
+                header('Location: ' . $dashboardUrl);
+                exit;
+            }
         }
     }
 
@@ -95,7 +101,9 @@ class AdminCardlink_CheckoutInstallmentsManagerController extends ModuleAdminCon
         $helper->className = $this->className;
         $helper->identifier = $this->identifier;
         $helper->name_controller = self::class;
-        $helper->token = Tools::getAdminTokenLite($this->name);
+        $helper->token = method_exists('Tools', 'getAdminTokenLite')
+            ? Tools::getAdminTokenLite($this->name)
+            : $this->token;
         $helper->currentIndex = $this->context->link->getAdminLink($this->name, false)
             . '&save' . Cardlink_Checkout\Constants::TABLE_NAME_INSTALLMENTS
             . '&' . http_build_query([

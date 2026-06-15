@@ -104,3 +104,35 @@ $_MODULE['<{cardlink_checkout}prestashop>payment_denied_0a3fe8ffac2bebe019f59fb3
 $_MODULE['<{cardlink_checkout}prestashop>payment_denied_3a83a4c5392e28b629c8e6ae23208875'] = 'Η πληρωμή δεν έγινε δεκτή';
 $_MODULE['<{cardlink_checkout}prestashop>payment_denied_c522cf23e0c9e6bbe706d86812177fd4'] = 'Η πληρωμή δεν έγινε δεκτή από την κάρτα ή από την τράπεζα.';
 $_MODULE['<{cardlink_checkout}prestashop>payment_denied_e20cbb947afcf84cf58de1358ee1068d'] = 'Μήνυμα σφάλματος';
+// Transaction operation messages
+$_MODULE['<{cardlink_checkout}prestashop>payment_transaction_captured'] = 'Η πληρωμή καταγράφηκε με επιτυχία';
+$_MODULE['<{cardlink_checkout}prestashop>payment_transaction_voided'] = 'Η πληρωμή ακυρώθηκε με επιτυχία';
+$_MODULE['<{cardlink_checkout}prestashop>payment_transaction_refunded'] = 'Η πληρωμή επιστράφηκε με επιτυχία';
+
+// Error messages
+$_MODULE['<{cardlink_checkout}prestashop>error_only_authorized_can_capture'] = 'Μόνο εξουσιοδοτημένες συναλλαγές μπορούν να καταγραφούν';
+$_MODULE['<{cardlink_checkout}prestashop>error_only_captured_can_refund'] = 'Μόνο καταγεγραμμένες συναλλαγές μπορούν να επιστραφούν';
+$_MODULE['<{cardlink_checkout}prestashop>error_captured_cannot_void'] = 'Οι καταγεγραμμένες συναλλαγές δεν μπορούν να ακυρωθούν. Παρακαλώ επιστρέψτε τα χρήματα.';
+$_MODULE['<{cardlink_checkout}prestashop>error_no_transaction_found'] = 'Δεν βρέθηκε συναλλαγή πληρωμής για αυτήν την παραγγελία';
+$_MODULE['<{cardlink_checkout}prestashop>error_unknown_action'] = 'Άγνωστη ενέργεια';
+$_MODULE['<{cardlink_checkout}prestashop>error_capture_failed'] = 'Αποτυχία καταγραφής: ';
+$_MODULE['<{cardlink_checkout}prestashop>error_void_failed'] = 'Αποτυχία ακύρωσης: ';
+$_MODULE['<{cardlink_checkout}prestashop>error_refund_failed'] = 'Αποτυχία επιστροφής: ';
+
+// Refund-specific error messages
+$_MODULE['<{cardlink_checkout}prestashop>error_settlement_transit'] = 'Η συναλλαγή βρίσκεται σε διαδρομή τακτοποίησης. Περιμένετε έως ότου ολοκληρωθεί η τακτοποίηση (συνήθως την επόμενη εργάσιμη ημέρα) και δοκιμάστε ξανά.';
+$_MODULE['<{cardlink_checkout}prestashop>error_partial_refund_unsettled'] = 'Μερική επιστροφή δεν είναι δυνατή σε μη τακτοποιημένες συναλλαγές. Μπορείτε μόνο να ακυρώσετε το πλήρες ποσό.';
+$_MODULE['<{cardlink_checkout}prestashop>error_transaction_not_refundable'] = 'Η αρχική συναλλαγή δεν είναι επιστρέψιμη και η μερική ακύρωση δεν υποστηρίζεται. Περιμένετε την τακτοποίηση ή δημιουργήστε ένα σημείωμα πίστωσης για το πλήρες ποσό.';
+$_MODULE['<{cardlink_checkout}prestashop>error_refund_and_void_failed'] = 'Τόσο η επιστροφή όσο και η ακύρωση απέτυχαν. Σφάλμα επιστροφής: %1. Σφάλμα ακύρωσης: %2.';
+$_MODULE['<{cardlink_checkout}prestashop>googlepay_payment_options_f38c0a4bbba8c1fc3405553c4fb7879c'] = 'Παρακαλώ αποδεχθείτε τους όρους και τις προϋποθέσεις για να ενεργοποιηθεί το Google Pay.';
+$_MODULE['<{cardlink_checkout}prestashop>applepay_payment_options_b5fb887b55bbebed8f7ac10dd48cad91'] = 'Παρακαλώ αποδεχθείτε τους όρους και τις προϋποθέσεις για να ενεργοποιηθεί το Apple Pay.';
+$_MODULE['<{cardlink_checkout}prestashop>googlepay_payment_options_c07daa79d563e28e52ee351620413144'] = 'Αρχικοποίηση Google Pay...';
+$_MODULE['<{cardlink_checkout}prestashop>applepay_payment_options_3c24f59b4214727c6d617843d7ace73b'] = 'Αρχικοποίηση Apple Pay...';
+
+// Background confirmation info block
+$_MODULE['<{cardlink_checkout}prestashop>cardlink_checkout_8fa09b8c236f003fcc1040b9e8e5b34b'] = 'Επιβεβαίωση στο Παρασκήνιο (Server-to-Server Ειδοποίηση)';
+$_MODULE['<{cardlink_checkout}prestashop>cardlink_checkout_be0046e1b676e1d8753fa45f55451222'] = 'Για να διασφαλιστεί η αξιόπιστη δημιουργία παραγγελιών ακόμα και όταν οι πελάτες κλείσουν τον browser τους πριν επιστρέψουν στο κατάστημα, πρέπει να ενεργοποιήσετε τη λειτουργία Επιβεβαίωσης στο Παρασκήνιο (Server-to-Server ειδοποίηση) με τη Cardlink.';
+$_MODULE['<{cardlink_checkout}prestashop>cardlink_checkout_f3aeef672cd86c3fe745aee2492a9960'] = 'Αντιγράψτε το παρακάτω URL και αποστείλτε το στην υποστήριξη της Cardlink στο %s για να καταχωρηθεί ως το endpoint ειδοποίησης πληρωμής σας.';
+$_MODULE['<{cardlink_checkout}prestashop>cardlink_checkout_c7c559c5ce53c96b8146be5773c5bf30'] = 'URL Επιβεβαίωσης στο Παρασκήνιο';
+$_MODULE['<{cardlink_checkout}prestashop>cardlink_checkout_cc0876c8a9733e410fc9410204aae6c1'] = 'Κάντε κλικ στο πεδίο για να επιλέξετε το URL και στη συνέχεια αντιγράψτε το.';
+$_MODULE['<{cardlink_checkout}prestashop>cardlink_checkout_5fb63579fc981698f97d55bfecb213ea'] = 'Αντιγραφή';

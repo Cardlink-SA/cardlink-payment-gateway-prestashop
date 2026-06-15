@@ -1,4 +1,6 @@
-/doc
+README.pdf
+/docs
 .htaccess
 *.log
 *.bak
+*.zip

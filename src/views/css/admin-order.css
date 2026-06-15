@@ -1,0 +1,185 @@
+/**
+ * Cardlink Checkout - Admin Order Page Styles
+ *
+ * @author Cardlink S.A. <ecommerce_support@cardlink.gr>
+ */
+
+/* Payment Actions Card */
+.cardlink-payment-actions {
+    border: 1px solid #dbe6e9;
+    border-radius: 4px;
+    margin-top: 15px;
+}
+
+.cardlink-payment-actions .card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dbe6e9;
+    padding: 10px 15px;
+}
+
+.cardlink-payment-actions .card-header-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cardlink-payment-actions .card-header-title .material-icons {
+    font-size: 20px;
+    color: #25b9d7;
+}
+
+.cardlink-payment-actions .card-body {
+    padding: 15px;
+}
+
+/* Status Badges */
+.cardlink-payment-actions .badge {
+    font-size: 12px;
+    padding: 5px 10px;
+    text-transform: uppercase;
+}
+
+.cardlink-payment-actions .badge-warning {
+    background-color: #fcb829;
+    color: #1a1a1a;
+}
+
+.cardlink-payment-actions .badge-success {
+    background-color: #70b580;
+    color: #fff;
+}
+
+.cardlink-payment-actions .badge-secondary {
+    background-color: #6c868e;
+    color: #fff;
+}
+
+/* Info Rows */
+.cardlink-payment-actions .row {
+    margin-bottom: 10px;
+}
+
+.cardlink-payment-actions .row:last-child {
+    margin-bottom: 0;
+}
+
+.cardlink-payment-actions code {
+    background-color: #f4f4f4;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    color: #363a41;
+}
+
+/* Buttons Container */
+.cardlink-payment-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.cardlink-payment-buttons .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    padding: 8px 16px;
+}
+
+.cardlink-payment-buttons .btn .material-icons {
+    font-size: 18px;
+}
+
+/* Capture Button */
+.cardlink-payment-buttons .btn-success {
+    background-color: #70b580;
+    border-color: #70b580;
+    color: #fff;
+}
+
+.cardlink-payment-buttons .btn-success:hover {
+    background-color: #5a9a6a;
+    border-color: #5a9a6a;
+}
+
+/* Void/Cancel Button */
+.cardlink-payment-buttons .btn-danger {
+    background-color: #e74c3c;
+    border-color: #e74c3c;
+    color: #fff;
+}
+
+.cardlink-payment-buttons .btn-danger:hover {
+    background-color: #c0392b;
+    border-color: #c0392b;
+}
+
+/* Refund Button */
+.cardlink-payment-buttons .btn-warning {
+    background-color: #fcb829;
+    border-color: #fcb829;
+    color: #1a1a1a;
+}
+
+.cardlink-payment-buttons .btn-warning:hover {
+    background-color: #e5a620;
+    border-color: #e5a620;
+}
+
+/* Alert Styling */
+.cardlink-payment-actions .alert {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 15px;
+}
+
+.cardlink-payment-actions .alert .material-icons {
+    font-size: 20px;
+}
+
+/* Loading State */
+.cardlink-payment-buttons .btn.loading {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.cardlink-payment-buttons .btn.loading::after {
+    content: '';
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: cardlink-spin 0.8s linear infinite;
+    margin-left: 8px;
+}
+
+@keyframes cardlink-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .cardlink-payment-buttons {
+        flex-direction: column;
+    }
+    
+    .cardlink-payment-buttons .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Orders Grid - Paid Column */
+td[data-column="paid_real"] {
+    text-align: right;
+    padding-right: 15px;
+}
