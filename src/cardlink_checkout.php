@@ -46,7 +46,7 @@ class Cardlink_Checkout extends PaymentModule
     {
         $this->name = Cardlink_Checkout\Constants::MODULE_NAME;
         $this->tab = 'payments_gateways';
-        $this->version = '1.3.0';
+        $this->version = '1.3.1';
         $this->author = 'Cardlink S.A.';
         $this->controllers = ['payment', 'validation', 'backgroundconfirmation', 'googlepayajax', 'googlepaywallet', 'googlepay3ds', 'applepayajax', 'applepaywallet', 'applepay3ds'];
         $this->currencies = true;
@@ -71,6 +71,7 @@ class Cardlink_Checkout extends PaymentModule
         parent::__construct();
 
         $this->ensureCoreHooksRegisteredSafely();
+        $this->ensureCardlinkOrderIdIndexIsNonUnique();
     }
 
     /**
@@ -99,6 +100,42 @@ class Cardlink_Checkout extends PaymentModule
             } catch (\Exception $e) {
                 // Ignore errors to prevent breaking BO pages.
             }
+        }
+    }
+
+    /**
+     * Safely ensure the `cardlink_order_id` index on the transactions table is
+     * non-unique, for existing installations created before this was fixed.
+     *
+     * The index must be non-unique because authorize/capture/void/refund
+     * (secondary transactions) are stored as separate rows sharing the same
+     * Gateway Order ID.
+     */
+    private function ensureCardlinkOrderIdIndexIsNonUnique()
+    {
+        if (empty($this->id)) {
+            return;
+        }
+
+        try {
+            $tableName = _DB_PREFIX_ . Cardlink_Checkout\Constants::TABLE_NAME_TRANSACTIONS;
+
+            $sql = 'SELECT `NON_UNIQUE` FROM INFORMATION_SCHEMA.STATISTICS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                    AND TABLE_NAME = \'' . pSQL($tableName) . '\'
+                    AND INDEX_NAME = \'IDX_cardlink_order_id\'
+                    LIMIT 1';
+            $result = Db::getInstance()->getValue($sql);
+
+            if ($result !== false && (int)$result === 0) {
+                Db::getInstance()->execute('
+                    ALTER TABLE `' . $tableName . '`
+                    DROP INDEX `IDX_cardlink_order_id`,
+                    ADD INDEX `IDX_cardlink_order_id` (`cardlink_order_id`)
+                ');
+            }
+        } catch (\Exception $e) {
+            // Ignore errors to prevent breaking BO pages.
         }
     }
 
@@ -198,7 +235,7 @@ class Cardlink_Checkout extends PaymentModule
                     `date_add` DATETIME DEFAULT CURRENT_TIMESTAMP,
                     `date_upd` DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
                     PRIMARY KEY (`id`),
-                    UNIQUE KEY `IDX_cardlink_order_id` (`cardlink_order_id`),
+                    INDEX `IDX_cardlink_order_id` (`cardlink_order_id`),
                     FOREIGN KEY (`id_order`) REFERENCES `' . _DB_PREFIX_ . 'orders` (`id_order`) ON DELETE CASCADE ON UPDATE CASCADE,
                     INDEX `IDX_id_order` (`id_order`)
                 ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8;')

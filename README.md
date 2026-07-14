@@ -9,6 +9,8 @@
 - License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 ## Changelog
+- **1.3.1**
+  - Fix bug with unique index on cardlink_order_id.
 - **1.3.0**
   - Compatibility with version 9.x.
 - **1.2.0**

@@ -1,4 +1,1 @@
-* Compatibility with version 9.x.
-* Support for background confirmations.
-* Support secondary transactions (capture, refund, cancel) through VPOS XML API calls.
-
+* Fix bug with unique index on cardlink_order_id.
